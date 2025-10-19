@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Annotator</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Image Annotator</h1>
+        </header>
+
+        <div class="upload-section">
+            <input type="file" id="imageInput" accept="image/*" style="display: none;">
+            <button id="uploadBtn">Upload Image</button>
+            <span id="fileName"></span>
+        </div>
+
+        <div class="annotation-area">
+            <div class="canvas-container">
+                <canvas id="annotationCanvas"></canvas>
+                <div class="instructions">
+                    <p>Draw bounding box: Click and drag from top-left to bottom-right</p>
+                </div>
+            </div>
+
+            <div class="info-panel">
+                <h3>Annotations</h3>
+                <div id="annotationsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/script.js"></script>
+</body>
+</html>
