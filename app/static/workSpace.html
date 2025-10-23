@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div id="header"></div>
+    <script>
+        fetch('header.html').then(response => response.text()).then(data => {
+            document.getElementById('header').innerHTML = data;
+        });
+    </script>
+    </div>
+    <div class="footer">
+        <div class="navi-footer-bar">
+            <div class="navi-section">
+                <button class="footer-navi-button"></button>
+                <button class="footer-navi-button"></button>
+                <button class="footer-navi-button"></button>
+                <button class="footer-navi-button"></button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
