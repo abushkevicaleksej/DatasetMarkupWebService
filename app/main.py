@@ -1,30 +1,24 @@
+import os
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from app.api.routes import router as api_router
-import os
+from api.v1.endpoints.file_upload import router as api_router
 
+BASE_DIR = Path(__file__).resolve().parent
+app = FastAPI(title="Image Annotator", version="1.0.0")
 
-def create_app() -> FastAPI:
-    app = FastAPI(title="Image Annotator", version="1.0.0")
+app.include_router(api_router, prefix="/api/v1")
 
-    os.makedirs("uploads", exist_ok=True)
-    os.makedirs("app/static", exist_ok=True)
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
-    app.include_router(api_router, prefix="/api/v1")
-
-    app.mount("/static", StaticFiles(directory="/app/static/"), name="static")
-
-    @app.get("/")
-    async def read_index():
-        return FileResponse("app/static/index.html")
-
-    return app
-
-
-app = create_app()
+@app.get("/")
+async def root():
+    index_path = BASE_DIR / "static" / "index.html"
+    return FileResponse(index_path)
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True)
