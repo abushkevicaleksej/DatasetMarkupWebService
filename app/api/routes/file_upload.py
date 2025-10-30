@@ -1,8 +1,17 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi.responses import HTMLResponse
 
 from app.application.services.file_processing_service import FileProcessingService
 
+BASE_DIR = Path(__file__).parent.parent
+
 router = APIRouter()
+
+@router.get("/upload", response_class=HTMLResponse)
+async def load_dataset_page():
+    html_path = BASE_DIR / "templates" / "loadDataset.html"
+    with open(html_path, "r", encoding="utf-8") as f:
+        return f.read()
 
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
@@ -18,7 +27,7 @@ async def upload_file(file: UploadFile = File(...)):
                 status_code=400,
                 detail=f"File processing failed: {result.error_message}"
             )
-        
+
         response = {
             "success": True,
             "processing_time": result.processing_time,
@@ -36,7 +45,7 @@ async def upload_file(file: UploadFile = File(...)):
         }
 
         return response
-        
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
