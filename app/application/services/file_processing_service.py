@@ -2,8 +2,8 @@ from pathlib import Path
 from typing import List, Dict
 import tempfile
 
-from domain.interfaces.file_processor import FileProcessor
-from domain.entities.file_info import ProcessingResult
+from app.domain.interfaces.file_processor import FileProcessor
+from app.domain.entities.file_info import ProcessingResult
 
 class FileProcessingService:
     
@@ -12,9 +12,9 @@ class FileProcessingService:
         self._setup_processors()
     
     def _setup_processors(self):
-        from infrastructure.file_processors.zip_processor import ZipProcessor
-        from infrastructure.file_processors.video_processor import VideoProcessor
-        from infrastructure.file_processors.image_processor import ImageProcessor
+        from app.infrastructure.file_processors.zip_processor import ZipProcessor
+        from app.infrastructure.file_processors.video_processor import VideoProcessor
+        from app.infrastructure.file_processors.image_processor import ImageProcessor
         
         processors = [
             ZipProcessor(),

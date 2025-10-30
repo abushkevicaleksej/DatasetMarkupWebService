@@ -6,8 +6,8 @@ import asyncio
 from typing import List
 import mimetypes
 
-from domain.entities.file_info import FileInfo, MediaType, ProcessingResult
-from domain.interfaces.file_processor import FileProcessor
+from app.domain.entities.file_info import FileInfo, MediaType, ProcessingResult
+from app.domain.interfaces.file_processor import FileProcessor
 
 class ZipProcessor(FileProcessor):
     
@@ -35,6 +35,7 @@ class ZipProcessor(FileProcessor):
                         media_type = self._determine_media_type(mime_type, extracted_file.name)
                         
                         if media_type == MediaType.IMAGE:
+
                             file_info = FileInfo(
                                 id=uuid4(),
                                 original_filename=extracted_file.name,

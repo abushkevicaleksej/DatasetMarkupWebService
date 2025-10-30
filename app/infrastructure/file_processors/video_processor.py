@@ -5,8 +5,8 @@ import asyncio
 from typing import List
 import mimetypes
 
-from domain.entities.file_info import FileInfo, MediaType, ProcessingResult
-from domain.interfaces.file_processor import FileProcessor
+from app.domain.entities.file_info import FileInfo, MediaType, ProcessingResult
+from app.domain.interfaces.file_processor import FileProcessor
 
 class VideoProcessor(FileProcessor):
     """Обработчик видеофайлов"""
