@@ -17,14 +17,22 @@ async def workspace_page():
     with open(html_path, "r", encoding="utf-8") as f:
         return f.read()
 
+
 @router.get("/files/{file_id}")
 async def get_file(file_id: str):
-    file_info = file_storage.get(file_id)
-    if not file_info or not os.path.exists(file_info.file_path):
-        raise HTTPException(status_code=404, detail="File not found")
+    try:
+        file_info = file_storage.get(file_id)
+        if not file_info:
+            raise HTTPException(status_code=404, detail="File not found")
 
-    return FileResponse(
-        path=file_info.file_path,
-        filename=file_info.original_filename,
-        media_type=file_info.mime_type
-    )
+        file_path = Path(file_info.file_path)
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="File not found on disk")
+
+        return FileResponse(
+            path=file_path,
+            filename=file_info.original_filename,
+            media_type=file_info.mime_type
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error serving file: {str(e)}")

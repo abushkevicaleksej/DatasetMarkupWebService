@@ -1,15 +1,16 @@
 from pathlib import Path
-from typing import List, Dict
-import tempfile
 import uuid
+import shutil
 
 from app.domain.interfaces.file_processor import FileProcessor
 from app.domain.entities.file_info import ProcessingResult
 
+from app.infrastructure.storage import file_storage
+
 class FileProcessingService:
     
     def __init__(self):
-        self._processors: Dict[str, FileProcessor] = {}
+        self._processors = {}
         self.upload_dir = Path("uploads")
         self.upload_dir.mkdir(exist_ok=True)
         self._setup_processors()
@@ -39,6 +40,7 @@ class FileProcessingService:
         
         return processor
 
+
     async def process_file(self, file_content: bytes, original_filename: str) -> ProcessingResult:
         file_id = uuid.uuid4()
         file_extension = Path(original_filename).suffix
@@ -52,8 +54,12 @@ class FileProcessingService:
 
             result = await processor.process(saved_file_path, original_filename)
 
-            from app.api.routes.workspace import file_storage
             for file_info in result.extracted_files:
+                if "tmp" in str(file_info.file_path):
+                    new_path = self.upload_dir / f"{file_info.id}{Path(file_info.file_path).suffix}"
+                    shutil.copy2(file_info.file_path, new_path)
+                    file_info.file_path = new_path
+
                 file_storage[str(file_info.id)] = file_info
 
             return result

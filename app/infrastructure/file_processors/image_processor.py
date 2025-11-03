@@ -11,18 +11,20 @@ class ImageProcessor(FileProcessor):
     @property
     def supported_extensions(self) -> List[str]:
         return ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp']
-    
+
     async def process(self, file_path: Path, original_filename: str) -> ProcessingResult:
         import time
         start_time = time.time()
-        
+
         try:
             mime_type, _ = mimetypes.guess_type(original_filename)
-            
+
             width, height = await self._get_image_dimensions(file_path)
-            
+
+            file_id = uuid4()
+
             file_info = FileInfo(
-                id=uuid4(),
+                id=file_id,
                 original_filename=original_filename,
                 file_path=file_path,
                 media_type=MediaType.IMAGE,
@@ -31,14 +33,14 @@ class ImageProcessor(FileProcessor):
                 width=width,
                 height=height
             )
-            
+
             processing_time = time.time() - start_time
             return ProcessingResult(
                 success=True,
                 extracted_files=[file_info],
                 processing_time=processing_time
             )
-            
+
         except Exception as e:
             processing_time = time.time() - start_time
             return ProcessingResult(

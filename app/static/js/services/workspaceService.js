@@ -116,41 +116,60 @@ export class WorkspaceManager {
 
         if (currentFile.media_type === 'image') {
             this.annotationArea.innerHTML = `
-                <div class="image-container" style="position: relative; display: inline-block;">
-                    <img src="/api/routes/files/${currentFile.id}" 
-                         alt="${currentFile.original_filename}" 
-                         class="annotation-image"
-                         style="max-width: 100%; max-height: 70vh; display: block;">
-                    <canvas id="annotation-canvas" 
-                            style="position: absolute; top: 0; left: 0; cursor: crosshair;"></canvas>
+                <div class="annotation-area-container">
+                    <div class="image-container">
+                        <img src="/api/routes/files/${currentFile.id}" 
+                             alt="${currentFile.original_filename}" 
+                             class="annotation-image"
+                             id="annotation-image"
+                             onerror="this.style.display='none'; document.getElementById('image-error').style.display='block';">
+                        <div id="image-error" style="display: none; color: red; padding: 20px;">
+                            Ошибка загрузки изображения. Проверьте console для деталей.
+                        </div>
+                        <canvas id="annotation-canvas"></canvas>
+                    </div>
                 </div>
                 <div class="image-info">
-                    <strong>${currentFile.original_filename}</strong><br>
-                    Size: ${currentFile.width || 'N/A'} x ${currentFile.height || 'N/A'}<br>
-                    Annotations: <span id="annotation-count">0</span>
+                    <strong>${currentFile.original_filename}</strong>
+                    <div class="file-stats">
+                        Размер: ${currentFile.width || 'N/A'} × ${currentFile.height || 'N/A'} | 
+                        Аннотации: <span id="annotation-count">0</span>
+                    </div>
                 </div>
             `;
 
-            const img = this.annotationArea.querySelector('.annotation-image');
-            if (img.complete) {
+            const img = document.getElementById('annotation-image');
+            const errorDiv = document.getElementById('image-error');
+
+            img.onload = () => {
+                errorDiv.style.display = 'none';
                 this.initCanvas();
-            } else {
-                img.onload = () => this.initCanvas();
+            };
+
+            img.onerror = () => {
+                console.error('Failed to load image:', img.src);
+                errorDiv.style.display = 'block';
+            };
+
+            if (img.complete) {
+                img.onload();
             }
-        } else {
-            this.annotationArea.innerHTML = `
-                <div class="placeholder-message">
-                    <h3>${currentFile.original_filename}</h3>
-                    <p>Тип файла: ${currentFile.media_type}</p>
-                    <p>Предпросмотр недоступен для данного типа файла</p>
-                </div>
-            `;
-        }
-    }
+                } else {
+                    this.annotationArea.innerHTML = `
+                        <div class="placeholder-message">
+                            <h3>${currentFile.original_filename}</h3>
+                            <p>Тип файла: ${currentFile.media_type}</p>
+                            <p>Размер: ${this.formatFileSize(currentFile.file_size)}</p>
+                            <p>📁 Предпросмотр недоступен для данного типа файла</p>
+                        </div>
+                    `;
+                }
+            }
+
 
     initCanvas() {
-        const img = this.annotationArea.querySelector('.annotation-image');
-        const canvas = this.annotationArea.querySelector('#annotation-canvas');
+        const img = document.getElementById('annotation-image');
+        const canvas = document.getElementById('annotation-canvas');
 
         if (!img || !canvas) {
             console.error('Image or canvas not found');
@@ -163,12 +182,18 @@ export class WorkspaceManager {
         canvas.width = img.offsetWidth;
         canvas.height = img.offsetHeight;
 
-        console.log(`Canvas initialized: ${canvas.width}x${canvas.height}`);
+        canvas.style.position = 'absolute';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
 
-        canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
-        canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
-        canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
-        canvas.addEventListener('click', this.handleClick.bind(this));
+        console.log(`Canvas initialized: ${canvas.width}x${canvas.height}, Image: ${img.naturalWidth}x${img.naturalHeight}`);
+
+        canvas.style.pointerEvents = 'auto';
+        canvas.classList.add('canvas-active');
+
+        this.setupCanvasEvents();
 
         this.drawAnnotations();
     }
@@ -240,6 +265,22 @@ export class WorkspaceManager {
             this.selectedBoundingBox = null;
             this.drawAnnotations();
         }
+    }
+
+    setupCanvasEvents() {
+        if (!this.canvas) return;
+
+        this.canvas.removeEventListener('mousedown', this.boundMouseDown);
+        this.canvas.removeEventListener('mousemove', this.boundMouseMove);
+        this.canvas.removeEventListener('mouseup', this.boundMouseUp);
+
+        this.boundMouseDown = this.handleMouseDown.bind(this);
+        this.boundMouseMove = this.handleMouseMove.bind(this);
+        this.boundMouseUp = this.handleMouseUp.bind(this);
+
+        this.canvas.addEventListener('mousedown', this.boundMouseDown);
+        this.canvas.addEventListener('mousemove', this.boundMouseMove);
+        this.canvas.addEventListener('mouseup', this.boundMouseUp);
     }
 
     async addAnnotation(bbox) {
