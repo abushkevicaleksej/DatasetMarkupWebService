@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List
-from domain.entities.file_info import ProcessingResult
+from app.domain.entities.file_info import ProcessingResult
 
 class FileProcessor(ABC):
     

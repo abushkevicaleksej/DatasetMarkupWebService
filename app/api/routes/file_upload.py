@@ -11,7 +11,7 @@ router = APIRouter()
 
 @router.get("/upload", response_class=HTMLResponse)
 async def load_dataset_page():
-    html_path = BASE_DIR / "static" / "loadDataset.html"
+    html_path = BASE_DIR / "static" / "templates" / "loadDataset.html"
     with open(html_path, "r", encoding="utf-8") as f:
         return f.read()
 
