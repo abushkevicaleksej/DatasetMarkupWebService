@@ -30,6 +30,10 @@ async def upload_file(file: UploadFile = File(...)):
                 detail=f"File processing failed: {result.error_message}"
             )
 
+        # from app.infrastructure.storage import file_storage
+        # for file_info in result.extracted_files:
+        #     file_storage[str(file_info.id)] = file_info
+
         response = {
             "success": True,
             "processing_time": result.processing_time,
@@ -46,7 +50,10 @@ async def upload_file(file: UploadFile = File(...)):
             ]
         }
 
-        return response
+        return {
+            **response,
+            "redirect_url": f"/api/routes/workspace"
+        }
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

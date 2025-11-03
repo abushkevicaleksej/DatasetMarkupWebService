@@ -5,6 +5,7 @@ from typing import Dict, Any, List
 
 @dataclass
 class BoundingBox:
+    id: UUID | None
     x: float
     y: float
     width: float

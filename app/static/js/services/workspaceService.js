@@ -12,7 +12,11 @@ export class WorkspaceManager {
         this.currentBoundingBox = null;
         this.canvas = null;
         this.ctx = null;
-        this.taskService = config.taskService;
+        this.dragStart = null;
+        this.selectedBoundingBox = null;
+        this.labelOptions = ['person', 'car', 'bicycle', 'animal', 'object'];
+
+        this.init();
     }
 
     init() {
@@ -20,66 +24,384 @@ export class WorkspaceManager {
         this.setupNavigation();
         this.setupToolButtons();
         this.setupSaveTaskButton();
+        this.setupLabelSelector();
     }
 
-    setupSaveTaskButton() {
-        const saveBtn = document.getElementById('save-task-btn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => this.saveTask());
+    setupLabelSelector() {
+        const labelSelector = document.createElement('select');
+        labelSelector.id = 'label-selector';
+        labelSelector.innerHTML = this.labelOptions.map(label =>
+            `<option value="${label}">${label}</option>`
+        ).join('');
+
+        const toolbar = document.querySelector('.workspace-tool-container');
+        if (toolbar) {
+            toolbar.appendChild(labelSelector);
         }
     }
 
-    async saveTask() {
-        const taskName = prompt('Введите название задачи:');
-        if (!taskName) return;
+    getCurrentLabel() {
+        const selector = document.getElementById('label-selector');
+        return selector ? selector.value : 'object';
+    }
 
-        try {
-            const taskData = {
-                name: taskName,
-                description: `Задача создана ${new Date().toLocaleString()}`,
-                files: this.currentFiles.map(file => file.id)
+    loadUploadedFiles() {
+        const uploadResult = sessionStorage.getItem('uploadResult');
+        console.log('Loaded upload result:', uploadResult);
+
+        if (uploadResult) {
+            try {
+                const result = JSON.parse(uploadResult);
+                this.currentFiles = result.extracted_files || [];
+                console.log('Loaded files:', this.currentFiles);
+                this.renderFilesList();
+
+                if (this.currentFiles.length > 0) {
+                    this.loadFile(0);
+                }
+            } catch (error) {
+                console.error('Error parsing upload result:', error);
+            }
+        } else {
+            console.warn('No upload result found in sessionStorage');
+        }
+    }
+
+    renderFilesList() {
+        if (!this.filesList) return;
+
+        this.filesList.innerHTML = this.currentFiles
+            .map((file, index) => `
+                <div class="workspace-file ${index === this.currentFileIndex ? 'active' : ''}" 
+                     data-index="${index}">
+                    <div class="file-thumbnail">📷</div>
+                    <div class="file-info">
+                        <div class="file-name">${file.original_filename}</div>
+                        <div class="file-size">${this.formatFileSize(file.file_size)}</div>
+                    </div>
+                </div>
+            `).join('');
+
+        this.filesList.querySelectorAll('.workspace-file').forEach(fileElement => {
+            fileElement.addEventListener('click', () => {
+                const index = parseInt(fileElement.dataset.index);
+                this.loadFile(index);
+            });
+        });
+    }
+
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    async loadFile(index) {
+        if (index < 0 || index >= this.currentFiles.length) return;
+
+        this.currentFileIndex = index;
+        this.renderFilesList();
+        await this.displayCurrentFile();
+        await this.loadAnnotations();
+        this.updateLabels();
+    }
+
+    async displayCurrentFile() {
+        if (!this.annotationArea) return;
+
+        const currentFile = this.currentFiles[this.currentFileIndex];
+        console.log('Displaying file:', currentFile);
+
+        if (currentFile.media_type === 'image') {
+            this.annotationArea.innerHTML = `
+                <div class="image-container" style="position: relative; display: inline-block;">
+                    <img src="/api/routes/files/${currentFile.id}" 
+                         alt="${currentFile.original_filename}" 
+                         class="annotation-image"
+                         style="max-width: 100%; max-height: 70vh; display: block;">
+                    <canvas id="annotation-canvas" 
+                            style="position: absolute; top: 0; left: 0; cursor: crosshair;"></canvas>
+                </div>
+                <div class="image-info">
+                    <strong>${currentFile.original_filename}</strong><br>
+                    Size: ${currentFile.width || 'N/A'} x ${currentFile.height || 'N/A'}<br>
+                    Annotations: <span id="annotation-count">0</span>
+                </div>
+            `;
+
+            const img = this.annotationArea.querySelector('.annotation-image');
+            if (img.complete) {
+                this.initCanvas();
+            } else {
+                img.onload = () => this.initCanvas();
+            }
+        } else {
+            this.annotationArea.innerHTML = `
+                <div class="placeholder-message">
+                    <h3>${currentFile.original_filename}</h3>
+                    <p>Тип файла: ${currentFile.media_type}</p>
+                    <p>Предпросмотр недоступен для данного типа файла</p>
+                </div>
+            `;
+        }
+    }
+
+    initCanvas() {
+        const img = this.annotationArea.querySelector('.annotation-image');
+        const canvas = this.annotationArea.querySelector('#annotation-canvas');
+
+        if (!img || !canvas) {
+            console.error('Image or canvas not found');
+            return;
+        }
+
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+
+        canvas.width = img.offsetWidth;
+        canvas.height = img.offsetHeight;
+
+        console.log(`Canvas initialized: ${canvas.width}x${canvas.height}`);
+
+        canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
+        canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
+        canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
+        canvas.addEventListener('click', this.handleClick.bind(this));
+
+        this.drawAnnotations();
+    }
+
+    handleMouseDown(e) {
+        if (this.currentTool !== 'rectangle') return;
+
+        const rect = this.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        this.isDrawing = true;
+        this.dragStart = { x, y };
+        this.currentBoundingBox = {
+            x, y, width: 0, height: 0, label: this.getCurrentLabel()
+        };
+    }
+
+    handleMouseMove(e) {
+        if (!this.isDrawing || !this.currentBoundingBox) return;
+
+        const rect = this.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        this.currentBoundingBox.width = x - this.dragStart.x;
+        this.currentBoundingBox.height = y - this.dragStart.y;
+
+        this.drawAnnotations();
+        this.drawCurrentBoundingBox();
+    }
+
+    handleMouseUp(e) {
+        if (!this.isDrawing) return;
+
+        this.isDrawing = false;
+
+        if (Math.abs(this.currentBoundingBox.width) > 10 &&
+            Math.abs(this.currentBoundingBox.height) > 10) {
+
+            let { x, y, width, height } = this.currentBoundingBox;
+
+            if (width < 0) {
+                x += width;
+                width = Math.abs(width);
+            }
+            if (height < 0) {
+                y += height;
+                height = Math.abs(height);
+            }
+
+            const normalizedBbox = {
+                x, y, width, height,
+                label: this.getCurrentLabel(),
+                confidence: 0.95
             };
 
-            const response = await fetch('/api/routes/api/tasks', {
+            this.addAnnotation(normalizedBbox);
+        }
+
+        this.currentBoundingBox = null;
+        this.dragStart = null;
+        this.drawAnnotations();
+    }
+
+    handleClick(e) {
+        if (this.currentTool === 'delete' && this.selectedBoundingBox) {
+            this.deleteAnnotation(this.selectedBoundingBox.annotationId, this.selectedBoundingBox.bboxId);
+            this.selectedBoundingBox = null;
+            this.drawAnnotations();
+        }
+    }
+
+    async addAnnotation(bbox) {
+        const currentFile = this.currentFiles[this.currentFileIndex];
+        const fileId = currentFile.id;
+
+        try {
+            const response = await fetch('/api/routes/annotations', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(taskData)
+                body: JSON.stringify({
+                    file_id: fileId,
+                    bounding_boxes: [bbox]
+                })
             });
 
             if (response.ok) {
-                const task = await response.json();
-                alert(`Задача "${task.name}" успешно создана!`);
-
-                await this.saveAnnotations(task.id);
+                const result = await response.json();
+                await this.loadAnnotations(); // Перезагружаем аннотации
+                this.updateLabels();
             } else {
-                throw new Error('Ошибка сохранения задачи');
+                console.error('Failed to save annotation:', await response.text());
             }
         } catch (error) {
-            console.error('Error saving task:', error);
-            alert('Ошибка сохранения задачи');
+            console.error('Error saving annotation:', error);
         }
     }
 
-    async saveAnnotations(taskId) {
-        for (const [fileId, annotations] of this.annotations.entries()) {
-            if (annotations.length > 0) {
-                const annotationData = {
-                    task_id: taskId,
-                    file_id: fileId,
-                    bounding_boxes: annotations
-                };
+    async loadAnnotations() {
+        const currentFile = this.currentFiles[this.currentFileIndex];
+        if (!currentFile) return;
 
-                await fetch('/api/routes/api/tasks/${taskId}/annotations', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(annotationData)
-                });
+        try {
+            const response = await fetch(`/api/routes/annotations/file/${currentFile.id}`);
+            if (response.ok) {
+                const annotations = await response.json();
+                this.annotations.set(currentFile.id, annotations);
+                this.drawAnnotations();
+                this.updateAnnotationCount(annotations.length);
             }
+        } catch (error) {
+            console.error('Error loading annotations:', error);
         }
+    }
+
+    updateAnnotationCount(count) {
+        const countElement = document.getElementById('annotation-count');
+        if (countElement) {
+            countElement.textContent = count;
+        }
+    }
+
+    async deleteAnnotation(annotationId, bboxId) {
+        try {
+            const response = await fetch(`/api/routes/annotations/${annotationId}/bbox/${bboxId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                await this.loadAnnotations(); // Перезагружаем аннотации
+                this.updateLabels();
+            } else {
+                console.error('Failed to delete annotation');
+            }
+        } catch (error) {
+            console.error('Error deleting annotation:', error);
+        }
+    }
+
+    drawAnnotations() {
+        if (!this.ctx || !this.canvas) return;
+
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        const currentFile = this.currentFiles[this.currentFileIndex];
+        if (!currentFile) return;
+
+        const annotations = this.annotations.get(currentFile.id) || [];
+
+        annotations.forEach(annotation => {
+            annotation.bounding_boxes.forEach(bbox => {
+                const isSelected = this.selectedBoundingBox &&
+                                 this.selectedBoundingBox.bboxId === bbox.id;
+
+                this.ctx.strokeStyle = isSelected ? '#ff0000' : '#00ff00';
+                this.ctx.lineWidth = isSelected ? 3 : 2;
+                this.ctx.strokeRect(bbox.x, bbox.y, bbox.width, bbox.height);
+
+                this.ctx.fillStyle = isSelected ? '#ff0000' : '#00ff00';
+                this.ctx.fillRect(bbox.x, bbox.y - 15, bbox.label.length * 8, 15);
+
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = '12px Arial';
+                this.ctx.fillText(bbox.label, bbox.x + 2, bbox.y - 3);
+            });
+        });
+    }
+
+    drawCurrentBoundingBox() {
+        if (!this.currentBoundingBox || !this.ctx) return;
+
+        this.ctx.strokeStyle = '#ff0000';
+        this.ctx.lineWidth = 2;
+        this.ctx.setLineDash([5, 5]);
+        this.ctx.strokeRect(
+            this.currentBoundingBox.x,
+            this.currentBoundingBox.y,
+            this.currentBoundingBox.width,
+            this.currentBoundingBox.height
+        );
+        this.ctx.setLineDash([]);
+    }
+
+    updateLabels() {
+        if (!this.labelsList) return;
+
+        const currentFile = this.currentFiles[this.currentFileIndex];
+        const annotations = this.annotations.get(currentFile.id) || [];
+
+        this.labelsList.innerHTML = annotations
+            .flatMap(annotation =>
+                annotation.bounding_boxes.map(bbox => `
+                    <div class="workspace-label ${this.selectedBoundingBox && this.selectedBoundingBox.bboxId === bbox.id ? 'selected' : ''}"
+                         data-annotation-id="${annotation.id}"
+                         data-bbox-id="${bbox.id}">
+                        <div class="label-text-box">
+                            <strong>${bbox.label}</strong><br>
+                            Pos: (${Math.round(bbox.x)}, ${Math.round(bbox.y)})<br>
+                            Size: ${Math.round(bbox.width)}x${Math.round(bbox.height)}
+                            <button class="delete-annotation" 
+                                    style="margin-left: 10px; color: red; border: none; background: none; cursor: pointer; float: right;">
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                `)
+            )
+            .join('');
+
+        this.labelsList.querySelectorAll('.workspace-label').forEach(label => {
+            label.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('delete-annotation')) {
+                    const annotationId = label.dataset.annotationId;
+                    const bboxId = label.dataset.bboxId;
+                    this.selectedBoundingBox = { annotationId, bboxId };
+                    this.drawAnnotations();
+                    this.updateLabels();
+                }
+            });
+        });
+
+        this.labelsList.querySelectorAll('.delete-annotation').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const label = btn.closest('.workspace-label');
+                const annotationId = label.dataset.annotationId;
+                const bboxId = label.dataset.bboxId;
+                this.deleteAnnotation(annotationId, bboxId);
+            });
+        });
     }
 
     setupToolButtons() {
@@ -107,199 +429,56 @@ export class WorkspaceManager {
         this.canvas.style.cursor = cursors[this.currentTool] || 'default';
     }
 
-    displayCurrentFile() {
-        if (!this.annotationArea) return;
+    setupNavigation() {
+        if (!this.navigation) return;
 
-        const currentFile = this.currentFiles[this.currentFileIndex];
+        this.navigation.first.addEventListener('click', () => this.loadFile(0));
+        this.navigation.prev.addEventListener('click', () => this.loadFile(this.currentFileIndex - 1));
+        this.navigation.next.addEventListener('click', () => this.loadFile(this.currentFileIndex + 1));
+        this.navigation.last.addEventListener('click', () => this.loadFile(this.currentFiles.length - 1));
+    }
 
-        if (currentFile.media_type === 'image') {
-            this.annotationArea.innerHTML = `
-                <div class="image-container">
-                    <img src="/api/files/${currentFile.id}" alt="${currentFile.original_filename}" 
-                         class="annotation-image" id="annotation-image">
-                    <canvas id="annotation-canvas"></canvas>
-                </div>
-            `;
+    setupSaveTaskButton() {
+        const saveButton = document.createElement('button');
+        saveButton.className = 'workspace-tool-button';
+        saveButton.textContent = '💾 Сохранить';
+        saveButton.style.background = '#4CAF50';
+        saveButton.addEventListener('click', () => this.saveTask());
 
-            const img = document.getElementById('annotation-image');
-            img.onload = () => this.initCanvas();
-        } else {
-            this.annotationArea.innerHTML = `
-                <div class="placeholder-message">
-                    Файл ${currentFile.original_filename} (${currentFile.media_type})<br>
-                    Предпросмотр недоступен для данного типа файла
-                </div>
-            `;
+        const toolbar = document.querySelector('.workspace-tool-container');
+        if (toolbar) {
+            toolbar.appendChild(saveButton);
         }
     }
 
-    initCanvas() {
-        const img = document.getElementById('annotation-image');
-        const canvas = document.getElementById('annotation-canvas');
-        this.canvas = canvas;
-        this.ctx = canvas.getContext('2d');
+    async saveTask() {
+        const taskName = prompt('Введите название задачи:');
+        if (!taskName) return;
 
-        canvas.width = img.width;
-        canvas.height = img.height;
-        canvas.style.position = 'absolute';
-        canvas.style.left = img.offsetLeft + 'px';
-        canvas.style.top = img.offsetTop + 'px';
+        try {
+            const taskData = {
+                name: taskName,
+                description: `Задача создана ${new Date().toLocaleString()}`,
+                files: this.currentFiles.map(file => file.id)
+            };
 
-        canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
-        canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
-        canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
-
-        this.loadAnnotationsForCurrentFile();
-        this.drawAnnotations();
-    }
-
-    handleMouseDown(e) {
-        if (this.currentTool !== 'rectangle') return;
-
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        this.isDrawing = true;
-        this.currentBoundingBox = {
-            x, y, width: 0, height: 0, label: 'object'
-        };
-    }
-
-    handleMouseMove(e) {
-        if (!this.isDrawing || !this.currentBoundingBox) return;
-
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        this.currentBoundingBox.width = x - this.currentBoundingBox.x;
-        this.currentBoundingBox.height = y - this.currentBoundingBox.y;
-
-        this.drawAnnotations();
-        this.drawCurrentBoundingBox();
-    }
-
-    handleMouseUp(e) {
-        if (!this.isDrawing) return;
-
-        this.isDrawing = false;
-
-        if (Math.abs(this.currentBoundingBox.width) > 5 &&
-            Math.abs(this.currentBoundingBox.height) > 5) {
-
-            if (this.currentBoundingBox.width < 0) {
-                this.currentBoundingBox.x += this.currentBoundingBox.width;
-                this.currentBoundingBox.width = Math.abs(this.currentBoundingBox.width);
-            }
-            if (this.currentBoundingBox.height < 0) {
-                this.currentBoundingBox.y += this.currentBoundingBox.height;
-                this.currentBoundingBox.height = Math.abs(this.currentBoundingBox.height);
-            }
-
-            this.addAnnotation(this.currentBoundingBox);
-        }
-
-        this.currentBoundingBox = null;
-        this.drawAnnotations();
-    }
-
-    addAnnotation(bbox) {
-        const currentFile = this.currentFiles[this.currentFileIndex];
-        const fileId = currentFile.id;
-
-        if (!this.annotations.has(fileId)) {
-            this.annotations.set(fileId, []);
-        }
-
-        this.annotations.get(fileId).push({
-            ...bbox,
-            id: Date.now()
-        });
-
-        this.updateLabels();
-    }
-
-    deleteAnnotation(annotationId) {
-        const currentFile = this.currentFiles[this.currentFileIndex];
-        const fileId = currentFile.id;
-
-        if (this.annotations.has(fileId)) {
-            const annotations = this.annotations.get(fileId);
-            this.annotations.set(fileId, annotations.filter(ann => ann.id !== annotationId));
-            this.drawAnnotations();
-            this.updateLabels();
-        }
-    }
-
-    drawAnnotations() {
-        if (!this.ctx) return;
-
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        const currentFile = this.currentFiles[this.currentFileIndex];
-        const annotations = this.annotations.get(currentFile.id) || [];
-
-        annotations.forEach(bbox => {
-            this.ctx.strokeStyle = '#00ff00';
-            this.ctx.lineWidth = 2;
-            this.ctx.strokeRect(bbox.x, bbox.y, bbox.width, bbox.height);
-
-            this.ctx.fillStyle = '#00ff00';
-            this.ctx.fillText(bbox.label, bbox.x, bbox.y - 5);
-        });
-    }
-
-    drawCurrentBoundingBox() {
-        if (!this.currentBoundingBox || !this.ctx) return;
-
-        this.ctx.strokeStyle = '#ff0000';
-        this.ctx.lineWidth = 2;
-        this.ctx.setLineDash([5, 5]);
-        this.ctx.strokeRect(
-            this.currentBoundingBox.x,
-            this.currentBoundingBox.y,
-            this.currentBoundingBox.width,
-            this.currentBoundingBox.height
-        );
-        this.ctx.setLineDash([]);
-    }
-
-    loadAnnotationsForCurrentFile() {
-        const currentFile = this.currentFiles[this.currentFileIndex];
-        if (!this.annotations.has(currentFile.id)) {
-            this.annotations.set(currentFile.id, []);
-        }
-    }
-
-    updateLabels() {
-        if (!this.labelsList) return;
-
-        const currentFile = this.currentFiles[this.currentFileIndex];
-        const annotations = this.annotations.get(currentFile.id) || [];
-
-        this.labelsList.innerHTML = annotations
-            .map(annotation => `
-                <div class="workspace-label">
-                    <div class="label-text-box">
-                        ${annotation.label}<br>
-                        ${Math.round(annotation.width)}x${Math.round(annotation.height)}
-                        <button class="delete-annotation" 
-                                data-id="${annotation.id}"
-                                style="margin-left: 10px; color: red; border: none; background: none; cursor: pointer;">
-                            ×
-                        </button>
-                    </div>
-                </div>
-            `)
-            .join('');
-
-        this.labelsList.querySelectorAll('.delete-annotation').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const annotationId = parseInt(btn.dataset.id);
-                this.deleteAnnotation(annotationId);
+            const response = await fetch('/api/routes/tasks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(taskData)
             });
-        });
+
+            if (response.ok) {
+                const task = await response.json();
+                alert(`Задача "${task.name}" успешно создана!`);
+            } else {
+                throw new Error('Ошибка сохранения задачи');
+            }
+        } catch (error) {
+            console.error('Error saving task:', error);
+            alert('Ошибка сохранения задачи: ' + error.message);
+        }
     }
 }
