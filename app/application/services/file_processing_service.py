@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List, Dict
 import tempfile
+import uuid
 
 from app.domain.interfaces.file_processor import FileProcessor
 from app.domain.entities.file_info import ProcessingResult
@@ -9,6 +10,8 @@ class FileProcessingService:
     
     def __init__(self):
         self._processors: Dict[str, FileProcessor] = {}
+        self.upload_dir = Path("uploads")
+        self.upload_dir.mkdir(exist_ok=True)
         self._setup_processors()
     
     def _setup_processors(self):
@@ -35,19 +38,27 @@ class FileProcessingService:
             raise ValueError(f"No processor found for file type: {extension}")
         
         return processor
-    
+
     async def process_file(self, file_content: bytes, original_filename: str) -> ProcessingResult:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=Path(original_filename).suffix) as temp_file:
-            temp_file.write(file_content)
-            temp_path = Path(temp_file.name)
-        
+        file_id = uuid.uuid4()
+        file_extension = Path(original_filename).suffix
+        saved_file_path = self.upload_dir / f"{file_id}{file_extension}"
+
+        with open(saved_file_path, "wb") as f:
+            f.write(file_content)
+
         try:
             processor = self.get_processor(original_filename)
-            
-            result = await processor.process(temp_path, original_filename)
-            
+
+            result = await processor.process(saved_file_path, original_filename)
+
+            from app.api.routes.workspace import file_storage
+            for file_info in result.extracted_files:
+                file_storage[str(file_info.id)] = file_info
+
             return result
-            
-        finally:
-            if temp_path.exists():
-                temp_path.unlink()
+
+        except Exception as e:
+            if saved_file_path.exists():
+                saved_file_path.unlink()
+            raise

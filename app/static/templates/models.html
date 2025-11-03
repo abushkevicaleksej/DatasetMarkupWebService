@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div id="header"></div>
     <script>
-        fetch('header.html').then(response => response.text()).then(data => {
-            document.getElementById('header').innerHTML = data;
-        });
+        fetch('/static/components/header.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('header').innerHTML = data;
+            });
     </script>
     </div>
     <div class="loadmodels">

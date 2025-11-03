@@ -1,7 +1,10 @@
 from fastapi import APIRouter
-from .routes import file_upload
+from .routes import file_upload, workspace, tasks, file_export
 
 def create_api_router() -> APIRouter:
     api_router = APIRouter()
     api_router.include_router(file_upload.router, prefix="/api/routes", tags=["upload"])
+    api_router.include_router(workspace.router, prefix="/api/routes", tags=["workspace"])
+    api_router.include_router(tasks.router, prefix="/api/routes", tags=["tasks"])
+    api_router.include_router(file_export.router, prefix="/api/routes", tags=["files"])
     return api_router

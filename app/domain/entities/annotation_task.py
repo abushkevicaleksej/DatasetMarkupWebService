@@ -1,0 +1,30 @@
+from enum import Enum
+from uuid import UUID
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Dict, Any, List
+
+from app.domain.entities.annotation import Annotation
+from app.domain.entities.file_info import FileInfo
+
+class TaskStatus(Enum):
+    IN_PROGRESS = 'in progress'
+    COMPLETED = 'completed'
+    REJECTED = 'rejected'
+
+@dataclass
+class Task:
+    id: UUID
+    name: str
+    description: str
+    files: List[FileInfo]
+    annotations: List[Annotation]
+    status: str
+    created_at: datetime = None
+    updated_at: datetime = None
+
+    def __post_init__(self):
+        if self.created_at is None:
+            self.created_at = datetime.now()
+        if self.updated_at is None:
+            self.updated_at = datetime.now()

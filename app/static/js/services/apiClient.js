@@ -10,11 +10,6 @@ export class FileUploader {
     init() {
         this.button.addEventListener('click', () => this.handleButtonClick());
         this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
-
-        this.button.addEventListener('dragenter', (e) => this.handleDragEnter(e));
-        this.button.addEventListener('dragover', (e) => this.handleDragOver(e));
-        this.button.addEventListener('dragleave', (e) => this.handleDragLeave(e));
-        this.button.addEventListener('drop', (e) => this.handleDrop(e));
     }
 
     handleButtonClick() {
@@ -23,34 +18,6 @@ export class FileUploader {
             return;
         }
         this.fileInput.click();
-    }
-
-    handleDragEnter(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.button.classList.add('drag-over');
-    }
-
-    handleDragOver(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-
-    handleDragLeave(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.button.classList.remove('drag-over');
-    }
-
-    handleDrop(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.button.classList.remove('drag-over');
-
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            this.processFile(files[0]);
-        }
     }
 
     async handleFileSelect(event) {
@@ -74,7 +41,12 @@ export class FileUploader {
         this.setUploadButtonState(true);
 
         try {
-            await this.uploadFile(file);
+            const result = await this.uploadFile(file);
+
+            if (result.success) {
+                this.setStatus('Успешно! Переход в рабочее пространство...', 'success');
+                this.navigateToWorkspace(result);
+            }
         } catch (error) {
             console.error('Upload error:', error);
             this.setStatus(`Ошибка: ${error.message}`, 'error');
@@ -107,32 +79,12 @@ export class FileUploader {
         const formData = new FormData();
         formData.append('file', file);
 
-        try {
-            const response = await fetch(this.uploadUrl, {
-                method: 'POST',
-                body: formData
-            });
+        const response = await fetch(this.uploadUrl, {
+            method: 'POST',
+            body: formData
+        });
 
-            const result = await this.handleResponse(response);
-
-            if (result.success) {
-                this.setStatus(
-                    `Успешно обработано за ${result.processing_time}с. Извлечено файлов: ${result.extracted_files.length}`,
-                    'success'
-                );
-                this.displayResults(result.extracted_files);
-            } else {
-                throw new Error(result.detail || 'Unknown error occurred');
-            }
-
-            return result;
-
-        } catch (error) {
-            if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                throw new Error('Network error - please check your connection');
-            }
-            throw error;
-        }
+        return await this.handleResponse(response);
     }
 
     async handleResponse(response) {
@@ -152,20 +104,23 @@ export class FileUploader {
         return await response.json();
     }
 
+    navigateToWorkspace(uploadResult) {
+        console.log('Upload result:', uploadResult);
+        sessionStorage.setItem('uploadResult', JSON.stringify(uploadResult));
+
+        const workspaceUrl = '/api/routes/workspace';
+        console.log('Redirecting to:', workspaceUrl);
+
+        setTimeout(() => {
+            window.location.href = workspaceUrl;
+        }, 1000);
+    }
+
     setStatus(message, type) {
         if (!this.statusContainer) return;
 
         this.statusContainer.textContent = message;
         this.statusContainer.className = `upload-status upload-status--${type}`;
-
-        if (type === 'success') {
-            setTimeout(() => {
-                if (this.statusContainer.textContent === message) {
-                    this.statusContainer.textContent = '';
-                    this.statusContainer.className = 'upload-status';
-                }
-            }, 5000);
-        }
     }
 
     setUploadButtonState(isUploading) {
@@ -176,53 +131,5 @@ export class FileUploader {
             this.button.textContent = 'Выбрать данные';
             this.button.disabled = false;
         }
-    }
-
-    displayResults(files) {
-        if (!files || files.length === 0 || !this.statusContainer) return;
-
-        const fileList = files.map(file => `
-            <div class="file-info">
-                <div class="file-info__name">${this.escapeHtml(file.original_filename)}</div>
-                <div class="file-info__details">
-                    <span>Тип: ${this.escapeHtml(file.media_type)}</span>
-                    <span>Размер: ${this.formatFileSize(file.file_size)}</span>
-                    ${file.width && file.height ? 
-                        `<span>Разрешение: ${file.width}×${file.height}</span>` : ''}
-                </div>
-            </div>
-        `).join('');
-
-        const resultsHtml = `
-            <div class="file-results">
-                <h3>Обработанные файлы:</h3>
-                ${fileList}
-            </div>
-        `;
-
-        const existingResults = this.statusContainer.querySelector('.file-results');
-        if (existingResults) {
-            existingResults.remove();
-        }
-
-        this.statusContainer.insertAdjacentHTML('afterend', resultsHtml);
-    }
-
-    escapeHtml(unsafe) {
-        if (typeof unsafe !== 'string') return unsafe;
-        return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-
-    formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 }

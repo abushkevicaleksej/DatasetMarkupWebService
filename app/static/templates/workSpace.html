@@ -3,20 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <title>Workspace</title>
 </head>
 <body>
     <div id="header"></div>
-    <script>
-        fetch('header.html').then(response => response.text()).then(data => {
-            document.getElementById('header').innerHTML = data;
-        });
-    </script>
+
     <div class="workspace-container">
         <div class="workspace-tool-container">
-            <button class="workspace-tool-button">Tool1</button>
-            <button class="workspace-tool-button">Tool2</button>
-            <button class="workspace-tool-button">Tool3</button>
+            <button class="workspace-tool-button" data-tool="select">Выбор</button>
+            <button class="workspace-tool-button" data-tool="rectangle">Прямоугольник</button>
+            <button class="workspace-tool-button" id="save-task-btn">Сохранить задачу</button>
             <button class="workspace-tool-button">Tool4</button>
             <button class="workspace-tool-button">Tool5</button>
             <button class="workspace-tool-button">Tool6</button>
@@ -24,58 +21,58 @@
             <button class="workspace-tool-button">Tool8</button>
             <button class="workspace-tool-button">Tool9</button>
             <button class="workspace-tool-button">Tool10</button>
-
         </div>
+
         <div class="workspace-annotation-container">
-
-        </div>
-        <div class="workspace-result-container">
-            <div class="workspace-labels-container">
-                <div class="workspace-label">
-                    <div class="label-text-box">Id Classname<br>coords or confidence</div>
-                </div>
-                <div class="workspace-label">
-                    <div class="label-text-box">Id Classname<br>coords or confidence</div>
-                </div>
-                <div class="workspace-label">
-                    <div class="label-text-box">Id Classname<br>coords or confidence</div>
-                </div>
-                <div class="workspace-label">
-                    <div class="label-text-box">Id Classname<br>coords or confidence</div>
+            <div id="annotation-area">
+                <div class="placeholder-message">
+                    Выберите файл для аннотирования
                 </div>
             </div>
+        </div>
+
+        <div class="workspace-result-container">
+            <div class="workspace-labels-container">
+                <div class="workspace-section-header">Annotations</div>
+                <div id="labels-list" class="workspace-labels-list">
+                </div>
+            </div>
+
             <div class="workspace-files-container">
-                <div class="workspace-file">Filename</div>
-                <div class="workspace-file">Filename</div>
-                <div class="workspace-file">Filename</div>
-                <div class="workspace-file">Filename</div>
-                <div class="workspace-file">Filename</div>
-                <div class="workspace-file">Filename</div>
-                <div class="workspace-file">Filename</div>
-                <div class="workspace-file">Filename</div>
-                <div class="workspace-file">Filename</div>
-                <div class="workspace-file">Filename</div>
-                <div class="workspace-file">Filename</div>
+                <div class="workspace-section-header">Files</div>
+                <div id="files-list" class="workspace-files-list">
+                </div>
             </div>
         </div>
     </div>
+
     <div class="footer">
         <div class="navi-footer-bar">
             <div class="navi-section">
-                <button class="footer-navi-button">
-                    <img src="../assets/rewind-button.png" alt="icon" style="width:16px; height:16px; vertical-align: middle;">
+                <button class="footer-navi-button" id="first-btn">
+                    <img src="/static/assets/rewind-button.png" alt="first" class="navi-icon">
                 </button>
-                <button class="footer-navi-button">
-                    <img src="../assets/previous.png" alt="icon" style="width:16px; height:16px; vertical-align: middle;">
+                <button class="footer-navi-button" id="prev-btn">
+                    <img src="/static/assets/previous.png" alt="previous" class="navi-icon">
                 </button>
-                <button class="footer-navi-button">
-                    <img src="../assets/next-button.png" alt="icon" style="width:16px; height:16px; vertical-align: middle;">
+                <button class="footer-navi-button" id="next-btn">
+                    <img src="/static/assets/next-button.png" alt="next" class="navi-icon">
                 </button>
-                <button class="footer-navi-button">
-                    <img src="../assets/forward-button.png" alt="icon" style="width:16px; height:16px; vertical-align: middle;">
+                <button class="footer-navi-button" id="last-btn">
+                    <img src="/static/assets/forward-button.png" alt="last" class="navi-icon">
                 </button>
             </div>
         </div>
     </div>
+
+    <script>
+        fetch('/static/components/header.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('header').innerHTML = data;
+            });
+    </script>
+
+    <script type="module" src="/static/js/workspace.js"></script>
 </body>
 </html>
