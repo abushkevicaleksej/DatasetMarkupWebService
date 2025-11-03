@@ -3,13 +3,15 @@ from fastapi.responses import HTMLResponse
 
 from app.application.services.file_processing_service import FileProcessingService
 
-BASE_DIR = Path(__file__).parent.parent
+from pathlib import Path
+
+BASE_DIR = Path(__file__).parent.parent.parent
 
 router = APIRouter()
 
 @router.get("/upload", response_class=HTMLResponse)
 async def load_dataset_page():
-    html_path = BASE_DIR / "templates" / "loadDataset.html"
+    html_path = BASE_DIR / "static" / "loadDataset.html"
     with open(html_path, "r", encoding="utf-8") as f:
         return f.read()
 
