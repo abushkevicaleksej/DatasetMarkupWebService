@@ -16,7 +16,7 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 @app.get("/")
 async def root():
-    index_path = BASE_DIR / "static" / "index.html"
+    index_path = BASE_DIR / "static" / "templates" / "index.html"
     return FileResponse(index_path)
 
 if __name__ == "__main__":
