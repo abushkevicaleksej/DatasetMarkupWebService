@@ -21,6 +21,28 @@ async def workspace_page():
     with open(html_path, "r", encoding="utf-8") as f:
         return f.read()
 
+
+@router.get("/files")
+async def get_all_files(db: Session = Depends(get_db)):
+    from app.infrastructure.repositories.file_repository import FileRepository
+
+    try:
+        file_repository = FileRepository(db)
+        files = file_repository.get_all()
+
+        return [
+            {
+                "id": file.id,
+                "original_filename": file.original_filename,
+                "file_size": file.file_size,
+                "file_path": file.file_path,
+                "mime_type": file.mime_type
+            }
+            for file in files
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.get("/files/{file_id}")
 async def get_file(file_id: str, db: Session = Depends(get_db)):
     from app.infrastructure.repositories.file_repository import FileRepository

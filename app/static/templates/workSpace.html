@@ -12,20 +12,37 @@
 
     <div class="workspace-container">
         <div class="workspace-tool-container">
-            <button class="workspace-tool-button" data-tool="rectangle">Прямоугольник</button>
-            <button class="workspace-tool-button" data-tool="model">Модель</button>
-            <button class="workspace-tool-button" data-tool="delete">Удаление</button>
+            <button class="workspace-tool-button" data-tool="rectangle">
+                <img src="/static/assets/rect.png"
+                         alt="rect"
+                         class="rect-icon"
+                         style="width: 25px; object-fit: contain;">
+            </button>
+            <button class="workspace-tool-button" data-tool="model">
+                <img src="/static/assets/brain.png"
+                         alt="brain"
+                         class="brain-icon"
+                         style="width: 25px; object-fit: contain;">
+            </button>
+            <button class="workspace-tool-button" data-tool="delete">
+                <img src="/static/assets/in.png"
+                         alt="bin"
+                         class="bin-icon"
+                         style="width: 25px; object-fit: contain;">
+            </button>
         </div>
 
         <div class="workspace-annotation-container">
-            <div id="annotation-area">
-                <div class="placeholder-message">
-                    Выберите файл для аннотирования
+            <div class="annotation-area-container">
+                <div id="annotation-area">
+                    <div class="placeholder-message">
+                        Выберите файл для аннотирования
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="workspace-result-container">
+         <div class="workspace-result-container">
             <div class="workspace-labels-container">
                 <div class="workspace-section-header">Аннотации</div>
                 <div id="labels-list" class="workspace-labels-list">
@@ -44,25 +61,25 @@
         <div class="navi-footer-bar">
             <div class="navi-section">
                  <button class="footer-navi-button" id="first-btn">
-                    <img src="/static/assets/rewind-button.png"
+                    <img src="/static/assets/previous.png"
                          alt="prev"
                          class="button-icon"
                          style="width: 16px; height: 16px; object-fit: contain;">
                 </button>
                 <button class="footer-navi-button" id="prev-btn">
-                    <img src="/static/assets/previous.png"
+                    <img src="/static/assets/rewind-button.png"
                          alt="first"
                          class="button-icon"
                          style="width: 16px; height: 16px; object-fit: contain;">
                 </button>
                 <button class="footer-navi-button" id="next-btn">
-                    <img src="/static/assets/next-button.png"
+                    <img src="/static/assets/forward-button.png"
                          alt="next"
                          class="button-icon"
                          style="width: 16px; height: 16px; object-fit: contain;">
                 </button>
                 <button class="footer-navi-button" id="last-btn">
-                    <img src="/static/assets/forward-button.png"
+                    <img src="/static/assets/next-button.png"
                          alt="last"
                          class="button-icon"
                          style="width: 16px; height: 16px; object-fit: contain;">
