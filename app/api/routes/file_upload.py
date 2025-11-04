@@ -22,7 +22,6 @@ async def upload_file(file: UploadFile = File(...)):
     processing_service = FileProcessingService()
 
     try:
-        print("get")
         result = await processing_service.process_file(file_content, file.filename)
         if not result.success:
             raise HTTPException(

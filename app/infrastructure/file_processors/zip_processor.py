@@ -23,9 +23,10 @@ class ZipProcessor(FileProcessor):
             extracted_files = []
             source_file_id = uuid4()
             
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp_path = Path(temp_dir)
-                
+            temp_dir = tempfile.mkdtemp(prefix="zip_processor_")
+            temp_path = Path(temp_dir)
+            
+            try:
                 with zipfile.ZipFile(file_path, 'r') as zip_ref:
                     zip_ref.extractall(temp_path)
                 
@@ -35,7 +36,6 @@ class ZipProcessor(FileProcessor):
                         media_type = self._determine_media_type(mime_type, extracted_file.name)
                         
                         if media_type == MediaType.IMAGE:
-
                             file_info = FileInfo(
                                 id=uuid4(),
                                 original_filename=extracted_file.name,
@@ -46,14 +46,20 @@ class ZipProcessor(FileProcessor):
                                 extracted_from=source_file_id
                             )
                             extracted_files.append(file_info)
-            
-            processing_time = time.time() - start_time
-            return ProcessingResult(
-                success=True,
-                extracted_files=extracted_files,
-                processing_time=processing_time
-            )
-            
+                
+                processing_time = time.time() - start_time
+                return ProcessingResult(
+                    success=True,
+                    extracted_files=extracted_files,
+                    processing_time=processing_time
+                )
+                
+            except Exception as e:
+                import shutil
+                if temp_path.exists():
+                    shutil.rmtree(temp_path)
+                raise
+                
         except Exception as e:
             processing_time = time.time() - start_time
             return ProcessingResult(
@@ -62,8 +68,7 @@ class ZipProcessor(FileProcessor):
                 error_message=f"Error processing ZIP file: {str(e)}",
                 processing_time=processing_time
             )
-        
-
+    
     def _determine_media_type(self, mime_type: str, filename: str) -> MediaType:
         image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp'}
         video_extensions = {'.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv'}

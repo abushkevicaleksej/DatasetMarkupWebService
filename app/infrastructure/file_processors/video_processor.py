@@ -9,7 +9,6 @@ from app.domain.entities.file_info import FileInfo, MediaType, ProcessingResult
 from app.domain.interfaces.file_processor import FileProcessor
 
 class VideoProcessor(FileProcessor):
-    """Обработчик видеофайлов"""
     
     @property
     def supported_extensions(self) -> List[str]:
@@ -23,32 +22,42 @@ class VideoProcessor(FileProcessor):
             extracted_files = []
             source_file_id = uuid4()
             
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp_path = Path(temp_dir)
-                
+            temp_dir = tempfile.mkdtemp(prefix="video_processor_")
+            temp_path = Path(temp_dir)
+            
+            try:
                 frames = await self._extract_frames(file_path, temp_path)
                 
                 for frame_path in frames:
-                    mime_type = 'image/jpeg'
-                    
-                    file_info = FileInfo(
-                        id=uuid4(),
-                        original_filename=f"{original_filename}_frame_{frame_path.stem}.jpg",
-                        file_path=frame_path,
-                        media_type=MediaType.IMAGE,
-                        mime_type=mime_type,
-                        file_size=frame_path.stat().st_size,
-                        extracted_from=source_file_id
-                    )
-                    extracted_files.append(file_info)
-            
-            processing_time = time.time() - start_time
-            return ProcessingResult(
-                success=True,
-                extracted_files=extracted_files,
-                processing_time=processing_time
-            )
-            
+                    if frame_path.exists():
+                        mime_type = 'image/jpeg'
+                        
+                        file_info = FileInfo(
+                            id=uuid4(),
+                            original_filename=f"{original_filename}_frame_{frame_path.stem}.jpg",
+                            file_path=frame_path,
+                            media_type=MediaType.IMAGE,
+                            mime_type=mime_type,
+                            file_size=frame_path.stat().st_size,
+                            extracted_from=source_file_id
+                        )
+                        extracted_files.append(file_info)
+                    else:
+                        print(f"Warning: Frame {frame_path} does not exist")
+                
+                processing_time = time.time() - start_time
+                return ProcessingResult(
+                    success=True,
+                    extracted_files=extracted_files,
+                    processing_time=processing_time
+                )
+                
+            except Exception as e:
+                import shutil
+                if temp_path.exists():
+                    shutil.rmtree(temp_path)
+                raise
+                
         except Exception as e:
             processing_time = time.time() - start_time
             return ProcessingResult(
@@ -61,7 +70,6 @@ class VideoProcessor(FileProcessor):
     async def _extract_frames(self, video_path: Path, output_dir: Path, fps: int = 1) -> List[Path]:
         try:
             import subprocess
-            import asyncio
             
             output_pattern = output_dir / "frame_%04d.jpg"
             command = [
@@ -80,9 +88,18 @@ class VideoProcessor(FileProcessor):
             stdout, stderr = await process.communicate()
             
             if process.returncode != 0:
-                raise Exception(f"FFmpeg error: {stderr.decode()}")
+                error_msg = stderr.decode() if stderr else "Unknown error"
+                raise Exception(f"FFmpeg error: {error_msg}")
             
-            return list(output_dir.glob("frame_*.jpg"))
+            frames = list(output_dir.glob("frame_*.jpg"))
+            if not frames:
+                raise Exception("No frames extracted from video")
+                
+            return frames
             
         except Exception as e:
+            import shutil
+            if output_dir.exists():
+                for frame_file in output_dir.glob("frame_*.jpg"):
+                    frame_file.unlink(missing_ok=True)
             raise Exception(f"Frame extraction failed: {str(e)}")
