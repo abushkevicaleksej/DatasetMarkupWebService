@@ -1,47 +1,110 @@
-from fastapi import APIRouter, HTTPException
 from uuid import UUID
-from app.application.services.annotation_service import annotation_service
+from pydantic import BaseModel
+from typing import List, Dict, Any
+
+from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, Depends
+
+from app.application.services.annotation_service import AnnotationService
+from app.infrastructure.database import get_db
 
 router = APIRouter()
+annotation_service = AnnotationService()
 
+class BoundingBoxCreate(BaseModel):
+    x: float
+    y: float
+    width: float
+    height: float
+    label: str = "object"
+    confidence: float = 1.0
+
+class AnnotationCreateRequest(BaseModel):
+    file_id: str
+    task_id: str
+    bounding_boxes: List[BoundingBoxCreate]
 
 @router.post("/annotations")
-async def create_annotation(annotation_data: dict):
+async def create_annotation(annotation_data: AnnotationCreateRequest, db: Session = Depends(get_db)):
+
+    from app.infrastructure.repositories.annotation_repository import AnnotationRepository
+    
     try:
-        file_id = UUID(annotation_data["file_id"])
-        bounding_boxes = annotation_data["bounding_boxes"]
-
-        annotation = annotation_service.create_annotation(file_id, bounding_boxes)
-
+        annotation_repository = AnnotationRepository(db)
+        
+        bboxes_dict = [bbox.dict() for bbox in annotation_data.bounding_boxes]
+        
+        annotation = annotation_repository.create_annotation(
+            file_id=annotation_data.file_id,
+            task_id=annotation_data.task_id,
+            bounding_boxes=bboxes_dict
+        )
+        
         return {
-            "id": str(annotation.id),
-            "file_id": str(annotation.file_id),
-            "bounding_boxes": [bbox.to_dict() for bbox in annotation.bounding_boxes]
+            "id": annotation.id,
+            "file_id": annotation.file_id,
+            "task_id": annotation.task_id,
+            "bounding_boxes": [
+                {
+                    "id": bbox.id,
+                    "x": bbox.x,
+                    "y": bbox.y,
+                    "width": bbox.width,
+                    "height": bbox.height,
+                    "label": bbox.label,
+                    "confidence": bbox.confidence
+                }
+                for bbox in annotation.bounding_boxes
+            ]
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/annotations/file/{file_id}")
-async def get_annotations_for_file(file_id: str):
+async def get_annotations_for_file(file_id: str, db: Session = Depends(get_db)):
+    from app.infrastructure.repositories.annotation_repository import AnnotationRepository
+    
     try:
-        file_uuid = UUID(file_id)
-        annotations = annotation_service.get_annotations_for_file(file_uuid)
-
-        return [annotation.to_dict() for annotation in annotations]
+        annotation_repository = AnnotationRepository(db)
+        annotations = annotation_repository.get_annotations_for_file(file_id)
+        
+        response = []
+        for annotation in annotations:
+            response.append({
+                "id": annotation.id,
+                "file_id": annotation.file_id,
+                "task_id": annotation.task_id,
+                "bounding_boxes": [
+                    {
+                        "id": bbox.id,
+                        "x": bbox.x,
+                        "y": bbox.y,
+                        "width": bbox.width,
+                        "height": bbox.height,
+                        "label": bbox.label,
+                        "confidence": bbox.confidence
+                    }
+                    for bbox in annotation.bounding_boxes
+                ],
+                "created_at": annotation.created_at.isoformat()
+            })
+        
+        return response
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
 @router.delete("/annotations/{annotation_id}/bbox/{bbox_id}")
-async def delete_bounding_box(annotation_id: str, bbox_id: str):
+async def delete_bounding_box(annotation_id: str, bbox_id: str, db: Session = Depends(get_db)):
+    from app.infrastructure.repositories.annotation_repository import AnnotationRepository
+    
     try:
-        bbox_uuid = UUID(bbox_id)
-        success = annotation_service.delete_bounding_box(bbox_uuid)
-
+        annotation_repository = AnnotationRepository(db)
+        success = annotation_repository.delete_bounding_box(bbox_id)
+        
         if not success:
             raise HTTPException(status_code=404, detail="Bounding box not found")
-
+            
         return {"message": "Bounding box deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

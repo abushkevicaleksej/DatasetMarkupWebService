@@ -3,7 +3,11 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+
 from app.api.routers import create_api_router
+from app.infrastructure.database import create_tables, engine
+
+create_tables()
 
 BASE_DIR = Path(__file__).resolve().parent
 app = FastAPI(title="Image Annotator", version="1.0.0")

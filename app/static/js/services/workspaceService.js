@@ -286,29 +286,69 @@ export class WorkspaceManager {
     async addAnnotation(bbox) {
         const currentFile = this.currentFiles[this.currentFileIndex];
         const fileId = currentFile.id;
-
+        
+        const img = document.getElementById('annotation-image');
+        const normalizedBbox = this.normalizeBoundingBox(bbox, img.naturalWidth, img.naturalHeight);
+        
         try {
+            let taskId = sessionStorage.getItem('currentTaskId');
+            if (!taskId) {
+                const taskResponse = await fetch('/api/routes/tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: `Task ${new Date().toLocaleDateString()}`,
+                        description: 'Auto-created task',
+                        file_ids: [fileId]
+                    })
+                });
+                
+                if (taskResponse.ok) {
+                    const task = await taskResponse.json();
+                    taskId = task.id;
+                    sessionStorage.setItem('currentTaskId', taskId);
+                }
+            }
+        
             const response = await fetch('/api/routes/annotations', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     file_id: fileId,
-                    bounding_boxes: [bbox]
+                    task_id: taskId,
+                    bounding_boxes: [normalizedBbox]
                 })
             });
 
             if (response.ok) {
-                const result = await response.json();
-                await this.loadAnnotations(); // Перезагружаем аннотации
+                await this.loadAnnotations();
                 this.updateLabels();
-            } else {
-                console.error('Failed to save annotation:', await response.text());
             }
         } catch (error) {
             console.error('Error saving annotation:', error);
         }
+    }
+
+    normalizeBoundingBox(bbox, imageWidth, imageHeight) {
+        return {
+            x: bbox.x / imageWidth,
+            y: bbox.y / imageHeight,
+            width: bbox.width / imageWidth,
+            height: bbox.height / imageHeight,
+            label: bbox.label,
+            confidence: bbox.confidence || 0.95
+        };
+    }
+
+    denormalizeBoundingBox(bbox, imageWidth, imageHeight) {
+        return {
+            x: bbox.x * imageWidth,
+            y: bbox.y * imageHeight,
+            width: bbox.width * imageWidth,
+            height: bbox.height * imageHeight,
+            label: bbox.label,
+            confidence: bbox.confidence
+        };
     }
 
     async loadAnnotations() {
@@ -356,30 +396,37 @@ export class WorkspaceManager {
         if (!this.ctx || !this.canvas) return;
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
+        
         const currentFile = this.currentFiles[this.currentFileIndex];
         if (!currentFile) return;
 
         const annotations = this.annotations.get(currentFile.id) || [];
+        const img = document.getElementById('annotation-image');
 
         annotations.forEach(annotation => {
             annotation.bounding_boxes.forEach(bbox => {
-                const isSelected = this.selectedBoundingBox &&
-                                 this.selectedBoundingBox.bboxId === bbox.id;
-
+                const denormalized = this.denormalizeBoundingBox(
+                    bbox, 
+                    img.naturalWidth, 
+                    img.naturalHeight
+                );
+                
+                const isSelected = this.selectedBoundingBox && 
+                                this.selectedBoundingBox.bboxId === bbox.id;
+                
                 this.ctx.strokeStyle = isSelected ? '#ff0000' : '#00ff00';
                 this.ctx.lineWidth = isSelected ? 3 : 2;
-                this.ctx.strokeRect(bbox.x, bbox.y, bbox.width, bbox.height);
-
+                this.ctx.strokeRect(denormalized.x, denormalized.y, denormalized.width, denormalized.height);
+                
                 this.ctx.fillStyle = isSelected ? '#ff0000' : '#00ff00';
-                this.ctx.fillRect(bbox.x, bbox.y - 15, bbox.label.length * 8, 15);
-
+                this.ctx.fillRect(denormalized.x, denormalized.y - 15, bbox.label.length * 8, 15);
+                
                 this.ctx.fillStyle = '#ffffff';
                 this.ctx.font = '12px Arial';
-                this.ctx.fillText(bbox.label, bbox.x + 2, bbox.y - 3);
+                this.ctx.fillText(bbox.label, denormalized.x + 2, denormalized.y - 3);
+                });
             });
-        });
-    }
+        }
 
     drawCurrentBoundingBox() {
         if (!this.currentBoundingBox || !this.ctx) return;
