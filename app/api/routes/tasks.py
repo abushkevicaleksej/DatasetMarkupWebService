@@ -6,7 +6,7 @@ from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Depends
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.orm import Session
 
 from app.domain.entities.annotation import BoundingBox
@@ -40,22 +40,22 @@ async def tasks_page():
     with open(html_path, "r", encoding="utf-8") as f:
         return f.read()
 
-@router.get("/api/tasks", response_class=HTMLResponse)
+@router.get("/api/tasks", response_class=JSONResponse)
 async def get_tasks(db: Session = Depends(get_db)):
     from app.infrastructure.repositories.task_repository import TaskRepository
 
     task_repository = TaskRepository(db)
-
     tasks = task_repository.get_all()
 
     response = []
+
     for task in tasks:
         response.append(
             TaskResponse(
-                id=task.id,
-                name=task.name,
-                description=task.description,
-                status=task.status,
+                id=str(task.id),
+                name=str(task.name),
+                description=str(task.description),
+                status=str(task.status),
                 file_count=len(task.files),
                 annotation_count=len(task.annotations),
                 created_at=task.created_at.isoformat(),
