@@ -19,7 +19,7 @@ class ImageProcessor(FileProcessor):
         try:
             mime_type, _ = mimetypes.guess_type(original_filename)
             
-            width, height = await self._get_image_dimensions(file_path)
+            width, height = await self._get_image_dimensions(file_path) #TODO check it. still bad
             
             file_info = FileInfo(
                 id=uuid4(),

@@ -1,9 +1,13 @@
 import os
 
-from fastapi.responses import HTMLResponse, FileResponse
-from fastapi import APIRouter, HTTPException
-
 from pathlib import Path
+
+from sqlalchemy.orm import Session
+
+from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import HTMLResponse, FileResponse
+
+from app.infrastructure.database import get_db
 
 BASE_DIR = Path(__file__).parent.parent.parent
 
@@ -19,9 +23,13 @@ async def workspace_page():
 
 
 @router.get("/files/{file_id}")
-async def get_file(file_id: str):
+async def get_file(file_id: str, db: Session = Depends(get_db)):
+    from app.infrastructure.repositories.file_repository import FileRepository
+    
     try:
-        file_info = file_storage.get(file_id)
+        file_repository = FileRepository(db)
+        file_info = file_repository.get_by_id(file_id)
+        
         if not file_info:
             raise HTTPException(status_code=404, detail="File not found")
 

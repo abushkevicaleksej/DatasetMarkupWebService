@@ -37,7 +37,7 @@ class AnnotationRepository:
         return self.db.query(Annotation)\
             .filter(Annotation.file_id == file_id)\
             .options(
-                self.db.joinedload(Annotation.bounding_boxes)
+                joinedload(Annotation.bounding_boxes)
             )\
             .all()
     
@@ -45,8 +45,8 @@ class AnnotationRepository:
         return self.db.query(Annotation)\
             .filter(Annotation.task_id == task_id)\
             .options(
-                self.db.joinedload(Annotation.bounding_boxes),
-                self.db.joinedload(Annotation.file)
+                joinedload(Annotation.bounding_boxes),
+                joinedload(Annotation.file)
             )\
             .all()
     
