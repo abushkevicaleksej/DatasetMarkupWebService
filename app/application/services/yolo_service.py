@@ -6,7 +6,7 @@ import cv2
 from ultralytics import YOLO
 
 from app.domain.ml_schemas import BoundingBoxPrediction, PredictionResponse
-from app.infrastructure.repositories.ml_model_repository import MLModelRepository, PredictionRepository, TrainingSessionRepository
+from app.infrastructure.repositories.ml_model_repository import MLModelRepository, TrainingSessionRepository
 from app.infrastructure.repositories.file_repository import FileRepository
 from app.infrastructure.repositories.annotation_repository import AnnotationRepository
 from app.infrastructure.database import get_db

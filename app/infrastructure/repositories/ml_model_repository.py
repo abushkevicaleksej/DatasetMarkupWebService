@@ -9,7 +9,7 @@ class MLModelRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_model(self, model_data: dict, download_model: bool = False) -> MLModel:
+    def create_model(self, model_data: dict) -> MLModel:
         db_model = MLModel(**model_data)
         self.db.add(db_model)
         self.db.commit()

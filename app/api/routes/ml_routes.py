@@ -1,7 +1,6 @@
 from typing import List
 from pathlib import Path
 
-from spacy.cli.download import download_model
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 
@@ -38,11 +37,11 @@ async def create_model(model_data: MLModelCreate, db: Session = Depends(get_db))
 
     try:
         model_path = Path(model_data.model_path)
+
         if not model_path.exists():
-            # raise HTTPException(status_code=400, detail="Model file not found")
-            model = model_repo.create_model(model_data.dict(), download_model=True)
-        else:
-            model = model_repo.create_model(model_data.dict())
+            raise HTTPException(status_code=400, detail="Model file not found")
+
+        model = model_repo.create_model(model_data.dict())
         return model
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
