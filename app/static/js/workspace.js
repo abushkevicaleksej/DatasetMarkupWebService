@@ -15,7 +15,6 @@ class WorkspaceModule {
     initializeWorkspace() {
         this.workspaceManager = new WorkspaceManager({
             annotationArea: document.getElementById('annotation-area'),
-            labelsList: document.getElementById('labels-list'),
             filesList: document.getElementById('files-list'),
             navigation: {
                 first: document.getElementById('first-btn'),

@@ -172,18 +172,21 @@
 }
 
 .footer {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 100%
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    z-index: 100;
 }
-.navi-footer-bar{
+
+.navi-footer-bar {
     width: 100%;
     height: 78px;
     background-color: rgba(196, 196, 196, 1);
     display: flex;
     justify-content: center;
     align-items: center;
+    z-index: 100;
 }
 
 .navi-section{
@@ -208,14 +211,13 @@
     background: rgba(224, 224, 224, 1);
     border-radius: 40%;
     transition: background-color 0.3s ease;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    z-index: 101;
+    position: relative;
 }
 
 .footer-navi-button:hover {
     background-color: #ffffff;
+    transform: scale(1.1);
 }
 
 .workspace-container{
@@ -224,7 +226,7 @@
     gap: 20px;
 }
 
-.workspace-tool-container{
+.workspace-tool-container {
     width: 72px;
     height: 724px;
     background: rgba(239, 239, 239, 1);
@@ -234,6 +236,8 @@
     flex-direction: column;
     gap: 10px;
     align-items: center;
+    z-index: 10;
+    position: relative;
 }
 
 .workspace-tool-button{
@@ -250,18 +254,69 @@
     background-color: #ffffff;
 }
 
-.workspace-annotation-container{
+.workspace-annotation-container {
     width: 1238px;
     height: 724px;
     margin-top: 28px;
     background: rgba(239, 239, 239, 1);
+    overflow: auto;
+    position: relative;
 }
 
-.workspace-result-container{
+.annotation-area-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+    height: auto;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow: auto;
+}
+
+.image-container {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    max-height: 70vh;
+    text-align: center;
+}
+
+.annotation-image {
+    max-width: 100%;
+    max-height: 70vh;
+    display: block;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+#annotation-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    pointer-events: auto;
+}
+
+.canvas-interactive {
+    pointer-events: auto;
+    cursor: crosshair;
+}
+
+.canvas-passive {
+    pointer-events: none;
+    cursor: default;
+}
+
+.workspace-result-container {
     display: flex;
     flex-direction: column;
     gap: 20px;
     margin-top: 28px;
+    z-index: 10;
+    position: relative;
 }
 
 .workspace-labels-container {
@@ -278,11 +333,11 @@
     box-sizing: border-box; /* Важно: учитываем padding в общей ширине */
 }
 
-.workspace-files-container{
+.workspace-files-container {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 10px; /* Добавляем отступы внутри контейнера */
+    padding: 10px;
     width: 396px;
     height: 457px;
     border-radius: 14px;
@@ -290,6 +345,32 @@
     box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
     background: linear-gradient(180.00deg, rgba(231, 231, 231, 1),rgba(231, 231, 231, 0) 100%);
     box-sizing: border-box;
+    z-index: 10;
+    position: relative;
+}
+
+.workspace-file {
+    height: 34px;
+    width: 100%;
+    border-radius: 8px;
+    background: rgba(204, 204, 204, 1);
+    margin-top: 13px;
+    margin-left: 11px;
+    flex-shrink: 0;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    z-index: 10;
+    position: relative;
+}
+
+.workspace-file:hover {
+    background-color: #ffffff;
+    transform: translateX(5px);
+}
+
+.workspace-file.active {
+    background: rgba(39, 120, 250, 0.3);
+    border: 1px solid rgba(39, 120, 250, 1);
 }
 
 .workspace-label {
@@ -315,26 +396,6 @@
     margin-top: 7px;
     margin-left: 9px;
 }
-
-.workspace-file {
-    display: flex;
-    align-items: center;
-    padding: 8px;
-    margin: 5px 0;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.workspace-file.active {
-    background: rgba(39, 120, 250, 0.2);
-    border: 1px solid rgba(39, 120, 250, 1);
-}
-
-.workspace-file:hover {
-    background: rgba(39, 120, 250, 0.1);
-}
-
 
 .file-thumbnail {
     font-size: 24px;

@@ -126,31 +126,29 @@ export class WorkspaceManager {
                         <div id="image-error" style="display: none; color: red; padding: 20px;">
                             Ошибка загрузки изображения. Проверьте console для деталей.
                         </div>
-                        <canvas id="annotation-canvas"></canvas>
-                    </div>
-                </div>
-                <div class="image-info">
-                    <strong>${currentFile.original_filename}</strong>
-                    <div class="file-stats">
-                        Размер: ${currentFile.width || 'N/A'} × ${currentFile.height || 'N/A'} | 
-                        Аннотации: <span id="annotation-count">0</span>
+                        <canvas id="annotation-canvas" class="canvas-passive"></canvas>
                     </div>
                 </div>
             `;
-
+            
             const img = document.getElementById('annotation-image');
             const errorDiv = document.getElementById('image-error');
-
+            
             img.onload = () => {
                 errorDiv.style.display = 'none';
                 this.initCanvas();
             };
-
+            
             img.onerror = () => {
                 console.error('Failed to load image:', img.src);
                 errorDiv.style.display = 'block';
+                const canvas = document.getElementById('annotation-canvas');
+                if (canvas) {
+                    canvas.classList.remove('canvas-interactive');
+                    canvas.classList.add('canvas-passive');
+                }
             };
-
+            
             if (img.complete) {
                 img.onload();
             }
@@ -170,7 +168,7 @@ export class WorkspaceManager {
     initCanvas() {
         const img = document.getElementById('annotation-image');
         const canvas = document.getElementById('annotation-canvas');
-
+        
         if (!img || !canvas) {
             console.error('Image or canvas not found');
             return;
@@ -179,28 +177,42 @@ export class WorkspaceManager {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
 
-        canvas.width = img.offsetWidth;
-        canvas.height = img.offsetHeight;
-
+        const displayWidth = img.offsetWidth;
+        const displayHeight = img.offsetHeight;
+        
+        canvas.width = displayWidth;
+        canvas.height = displayHeight;
+        
+        canvas.style.width = displayWidth + 'px';
+        canvas.style.height = displayHeight + 'px';
         canvas.style.position = 'absolute';
         canvas.style.top = '0';
         canvas.style.left = '0';
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
 
-        console.log(`Canvas initialized: ${canvas.width}x${canvas.height}, Image: ${img.naturalWidth}x${img.naturalHeight}`);
+        console.log(`Canvas initialized: ${canvas.width}x${canvas.height}, Display: ${displayWidth}x${displayHeight}`);
 
-        canvas.style.pointerEvents = 'auto';
-        canvas.classList.add('canvas-active');
-
-        this.setupCanvasEvents();
-
+        this.setCanvasPassive();
+        
+        this.loadAnnotationsForCurrentFile();
         this.drawAnnotations();
     }
 
-    handleMouseDown(e) {
-        if (this.currentTool !== 'rectangle') return;
+    setCanvasInteractive() {
+        if (!this.canvas) return;
+        this.canvas.classList.remove('canvas-passive');
+        this.canvas.classList.add('canvas-interactive');
+        this.updateCanvasCursor();
+    }
 
+    setCanvasPassive() {
+        if (!this.canvas) return;
+        this.canvas.classList.remove('canvas-interactive');
+        this.canvas.classList.add('canvas-passive');
+        this.canvas.style.cursor = 'default';
+    }
+
+    handleMouseDown(e) {
+        if (!this.canvas.classList.contains('canvas-interactive') || this.currentTool !== 'rectangle') return;
         const rect = this.canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -213,7 +225,7 @@ export class WorkspaceManager {
     }
 
     handleMouseMove(e) {
-        if (!this.isDrawing || !this.currentBoundingBox) return;
+        if (!this.canvas.classList.contains('canvas-interactive') || !this.isDrawing || !this.currentBoundingBox) return;
 
         const rect = this.canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
@@ -227,15 +239,15 @@ export class WorkspaceManager {
     }
 
     handleMouseUp(e) {
-        if (!this.isDrawing) return;
+        if (!this.canvas.classList.contains('canvas-interactive') || !this.isDrawing) return;
 
         this.isDrawing = false;
-
-        if (Math.abs(this.currentBoundingBox.width) > 10 &&
+        
+        if (Math.abs(this.currentBoundingBox.width) > 10 && 
             Math.abs(this.currentBoundingBox.height) > 10) {
-
+            
             let { x, y, width, height } = this.currentBoundingBox;
-
+            
             if (width < 0) {
                 x += width;
                 width = Math.abs(width);
@@ -246,14 +258,14 @@ export class WorkspaceManager {
             }
 
             const normalizedBbox = {
-                x, y, width, height,
+                x, y, width, height, 
                 label: this.getCurrentLabel(),
                 confidence: 0.95
             };
 
             this.addAnnotation(normalizedBbox);
         }
-
+        
         this.currentBoundingBox = null;
         this.dragStart = null;
         this.drawAnnotations();
@@ -498,22 +510,29 @@ export class WorkspaceManager {
             button.addEventListener('click', (e) => {
                 toolButtons.forEach(btn => btn.classList.remove('active'));
                 e.target.classList.add('active');
-
+                
                 this.currentTool = e.target.dataset.tool;
+                
+                if (this.currentTool === 'select' || this.currentTool === 'rectangle' || this.currentTool === 'delete') {
+                    this.setCanvasInteractive();
+                } else {
+                    this.setCanvasPassive();
+                }
+                
                 this.updateCanvasCursor();
             });
         });
     }
 
     updateCanvasCursor() {
-        if (!this.canvas) return;
-
+        if (!this.canvas || !this.canvas.classList.contains('canvas-interactive')) return;
+        
         const cursors = {
             'select': 'default',
             'rectangle': 'crosshair',
             'delete': 'not-allowed'
         };
-
+        
         this.canvas.style.cursor = cursors[this.currentTool] || 'default';
     }
 
