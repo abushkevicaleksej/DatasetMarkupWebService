@@ -16,3 +16,15 @@ class FileProcessor(ABC):
 
     def can_process(self, filename: str) -> bool:
         return any(filename.lower().endswith(ext) for ext in self.supported_extensions)
+    
+class ExtractorProcessor(FileProcessor, ABC):
+    
+    @abstractmethod
+    async def extract(self, file_path: Path, output_dir: Path) -> List[Path]:
+        pass
+
+class ImageProcessor(FileProcessor, ABC):
+    
+    @abstractmethod
+    async def process_single_image(self, file_path: Path, original_filename: str) -> ProcessingResult:
+        pass
