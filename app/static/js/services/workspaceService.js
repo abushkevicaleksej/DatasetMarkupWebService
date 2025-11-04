@@ -74,10 +74,8 @@ export class WorkspaceManager {
             .map((file, index) => `
                 <div class="workspace-file ${index === this.currentFileIndex ? 'active' : ''}" 
                      data-index="${index}">
-                    <div class="file-thumbnail">📷</div>
                     <div class="file-info">
                         <div class="file-name">${file.original_filename}</div>
-                        <div class="file-size">${this.formatFileSize(file.file_size)}</div>
                     </div>
                 </div>
             `).join('');
@@ -168,7 +166,7 @@ export class WorkspaceManager {
     initCanvas() {
         const img = document.getElementById('annotation-image');
         const canvas = document.getElementById('annotation-canvas');
-        
+
         if (!img || !canvas) {
             console.error('Image or canvas not found');
             return;
@@ -177,24 +175,93 @@ export class WorkspaceManager {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
 
-        const displayWidth = img.offsetWidth;
-        const displayHeight = img.offsetHeight;
-        
-        canvas.width = displayWidth;
-        canvas.height = displayHeight;
-        
-        canvas.style.width = displayWidth + 'px';
-        canvas.style.height = displayHeight + 'px';
-        canvas.style.position = 'absolute';
-        canvas.style.top = '0';
-        canvas.style.left = '0';
+        const updateCanvasSize = () => {
+            const imgRect = img.getBoundingClientRect();
+            const containerRect = img.parentElement.getBoundingClientRect();
 
-        console.log(`Canvas initialized: ${canvas.width}x${canvas.height}, Display: ${displayWidth}x${displayHeight}`);
+            canvas.width = imgRect.width;
+            canvas.height = imgRect.height;
+
+            canvas.style.width = imgRect.width + 'px';
+            canvas.style.height = imgRect.height + 'px';
+
+            console.log(`Canvas updated: ${canvas.width}x${canvas.height}`);
+            this.drawAnnotations();
+        };
+
+        if (img.complete) {
+            updateCanvasSize();
+        } else {
+            img.onload = updateCanvasSize;
+        }
 
         this.setCanvasPassive();
-        
         this.loadAnnotationsForCurrentFile();
-        this.drawAnnotations();
+        this.setupCanvasEvents();
+
+        this.scale = 1;
+        this.offset = { x: 0, y: 0 };
+        this.isPanning = false;
+        this.lastPan = { x: 0, y: 0 };
+
+        const container = document.querySelector('.image-container');
+
+        container.addEventListener('wheel', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+                const rect = container.getBoundingClientRect();
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+
+                const scaleChange = -e.deltaY * 0.002;
+                const newScale = Math.min(Math.max(0.1, this.scale + scaleChange), 5);
+
+                const scaleDiff = newScale / this.scale;
+                this.offset.x = centerX - (centerX - this.offset.x) * scaleDiff;
+                this.offset.y = centerY - (centerY - this.offset.y) * scaleDiff;
+
+                this.scale = newScale;
+                this.updateImageTransform();
+                updateCanvasSize();
+            }
+        });
+
+        container.addEventListener('mousedown', (e) => {
+            if (e.ctrlKey && e.button === 0) {
+                e.preventDefault();
+                this.isPanning = true;
+                this.lastPan = { x: e.clientX, y: e.clientY };
+                container.style.cursor = 'grabbing';
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (this.isPanning) {
+                const dx = e.clientX - this.lastPan.x;
+                const dy = e.clientY - this.lastPan.y;
+                this.offset.x += dx;
+                this.offset.y += dy;
+                this.updateImageTransform();
+                updateCanvasSize();
+                this.lastPan = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (this.isPanning) {
+                this.isPanning = false;
+                container.style.cursor = '';
+            }
+        });
+
+        container.addEventListener('dblclick', (e) => {
+            if (e.ctrlKey) {
+                this.scale = 1;
+                this.offset = { x: 0, y: 0 };
+                this.updateImageTransform();
+                updateCanvasSize();
+            }
+        });
     }
 
     setCanvasInteractive() {
@@ -211,11 +278,31 @@ export class WorkspaceManager {
         this.canvas.style.cursor = 'default';
     }
 
+    updateImageTransform() {
+        const img = document.getElementById('annotation-image');
+        if (!img) return;
+
+        const container = img.parentElement;
+        const containerRect = container.getBoundingClientRect();
+        const imgRect = img.getBoundingClientRect();
+
+        const maxOffsetX = Math.max(0, (imgRect.width * this.scale - containerRect.width) / 2);
+        const maxOffsetY = Math.max(0, (imgRect.height * this.scale - containerRect.height) / 2);
+
+        this.offset.x = Math.min(Math.max(this.offset.x, -maxOffsetX), maxOffsetX);
+        this.offset.y = Math.min(Math.max(this.offset.y, -maxOffsetY), maxOffsetY);
+
+        img.style.transform = `translate(calc(-50% + ${this.offset.x}px), calc(-50% + ${this.offset.y}px)) scale(${this.scale})`;
+    }
+
     handleMouseDown(e) {
         if (!this.canvas.classList.contains('canvas-interactive') || this.currentTool !== 'rectangle') return;
+
+        if (e.ctrlKey) return;
+
         const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const x = (e.clientX - rect.left) / this.scale;
+        const y = (e.clientY - rect.top) / this.scale;
 
         this.isDrawing = true;
         this.dragStart = { x, y };
@@ -228,8 +315,8 @@ export class WorkspaceManager {
         if (!this.canvas.classList.contains('canvas-interactive') || !this.isDrawing || !this.currentBoundingBox) return;
 
         const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const x = (e.clientX - rect.left) / this.scale;
+        const y = (e.clientY - rect.top) / this.scale;
 
         this.currentBoundingBox.width = x - this.dragStart.x;
         this.currentBoundingBox.height = y - this.dragStart.y;
@@ -242,12 +329,12 @@ export class WorkspaceManager {
         if (!this.canvas.classList.contains('canvas-interactive') || !this.isDrawing) return;
 
         this.isDrawing = false;
-        
-        if (Math.abs(this.currentBoundingBox.width) > 10 && 
+
+        if (Math.abs(this.currentBoundingBox.width) > 10 &&
             Math.abs(this.currentBoundingBox.height) > 10) {
-            
+
             let { x, y, width, height } = this.currentBoundingBox;
-            
+
             if (width < 0) {
                 x += width;
                 width = Math.abs(width);
@@ -258,14 +345,14 @@ export class WorkspaceManager {
             }
 
             const normalizedBbox = {
-                x, y, width, height, 
+                x, y, width, height,
                 label: this.getCurrentLabel(),
                 confidence: 0.95
             };
 
             this.addAnnotation(normalizedBbox);
         }
-        
+
         this.currentBoundingBox = null;
         this.dragStart = null;
         this.drawAnnotations();
@@ -342,22 +429,36 @@ export class WorkspaceManager {
     }
 
     normalizeBoundingBox(bbox, imageWidth, imageHeight) {
+        const img = document.getElementById('annotation-image');
+        const displayWidth = img.offsetWidth;
+        const displayHeight = img.offsetHeight;
+
+        const scaleX = imageWidth / displayWidth;
+        const scaleY = imageHeight / displayHeight;
+
         return {
-            x: bbox.x / imageWidth,
-            y: bbox.y / imageHeight,
-            width: bbox.width / imageWidth,
-            height: bbox.height / imageHeight,
+            x: (bbox.x * scaleX) / imageWidth,
+            y: (bbox.y * scaleY) / imageHeight,
+            width: (bbox.width * scaleX) / imageWidth,
+            height: (bbox.height * scaleY) / imageHeight,
             label: bbox.label,
             confidence: bbox.confidence || 0.95
         };
     }
 
     denormalizeBoundingBox(bbox, imageWidth, imageHeight) {
+        const img = document.getElementById('annotation-image');
+        const displayWidth = img.offsetWidth;
+        const displayHeight = img.offsetHeight;
+
+        const scaleX = displayWidth / imageWidth;
+        const scaleY = displayHeight / imageHeight;
+
         return {
-            x: bbox.x * imageWidth,
-            y: bbox.y * imageHeight,
-            width: bbox.width * imageWidth,
-            height: bbox.height * imageHeight,
+            x: bbox.x * imageWidth * scaleX,
+            y: bbox.y * imageHeight * scaleY,
+            width: bbox.width * imageWidth * scaleX,
+            height: bbox.height * imageHeight * scaleY,
             label: bbox.label,
             confidence: bbox.confidence
         };
@@ -528,9 +629,9 @@ export class WorkspaceManager {
         if (!this.canvas || !this.canvas.classList.contains('canvas-interactive')) return;
         
         const cursors = {
-            'select': 'default',
             'rectangle': 'crosshair',
-            'delete': 'not-allowed'
+            'delete': 'not-allowed',
+            'model': 'not-allowed'
         };
         
         this.canvas.style.cursor = cursors[this.currentTool] || 'default';
@@ -543,19 +644,6 @@ export class WorkspaceManager {
         this.navigation.prev.addEventListener('click', () => this.loadFile(this.currentFileIndex - 1));
         this.navigation.next.addEventListener('click', () => this.loadFile(this.currentFileIndex + 1));
         this.navigation.last.addEventListener('click', () => this.loadFile(this.currentFiles.length - 1));
-    }
-
-    setupSaveTaskButton() {
-        const saveButton = document.createElement('button');
-        saveButton.className = 'workspace-tool-button';
-        saveButton.textContent = '💾 Сохранить';
-        saveButton.style.background = '#4CAF50';
-        saveButton.addEventListener('click', () => this.saveTask());
-
-        const toolbar = document.querySelector('.workspace-tool-container');
-        if (toolbar) {
-            toolbar.appendChild(saveButton);
-        }
     }
 
     async saveTask() {

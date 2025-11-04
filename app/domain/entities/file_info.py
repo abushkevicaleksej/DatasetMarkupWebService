@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Dict
 from uuid import UUID
 
 class MediaType(Enum):
@@ -20,7 +20,8 @@ class FileInfo:
     width: Optional[int] = None
     height: Optional[int] = None
     duration: Optional[float] = None
-    extracted_from: Optional[UUID] = None 
+    extracted_from: Optional[UUID] = None
+    ml_processed: bool = False
 
 @dataclass
 class ProcessingResult:
@@ -28,3 +29,4 @@ class ProcessingResult:
     extracted_files: List[FileInfo]
     error_message: Optional[str] = None
     processing_time: float = 0.0
+    ml_predictions: Optional[List[Dict]] = None

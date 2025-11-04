@@ -21,7 +21,6 @@ async def workspace_page():
     with open(html_path, "r", encoding="utf-8") as f:
         return f.read()
 
-
 @router.get("/files/{file_id}")
 async def get_file(file_id: str, db: Session = Depends(get_db)):
     from app.infrastructure.repositories.file_repository import FileRepository
