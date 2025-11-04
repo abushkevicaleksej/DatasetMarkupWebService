@@ -88,3 +88,18 @@ async def create_task(task_data: TaskCreateRequest, db: Session = Depends(get_db
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+@router.delete("/api/tasks/{task_id}")
+async def delete_task(task_id: str, db: Session = Depends(get_db)):
+    from app.infrastructure.repositories.task_repository import TaskRepository
+    
+    try:
+        task_repository = TaskRepository(db)
+        success = task_repository.delete(task_id)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Task not found")
+            
+        return {"message": "Task deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

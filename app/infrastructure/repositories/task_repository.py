@@ -47,6 +47,7 @@ class TaskRepository:
     
     def delete(self, task_id: str) -> bool:
         task = self.get_by_id(task_id)
+        print(task)
         if task:
             self.db.delete(task)
             self.db.commit()
