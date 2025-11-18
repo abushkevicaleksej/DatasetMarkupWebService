@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { ListTodo, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ListTodo, Clock, CheckCircle2} from 'lucide-react';
 
 interface Task {
   id: string;
   title: string;
   description: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: 'running' | 'completed' | 'rejected';
   model: string;
   createdAt: string;
 }
@@ -34,7 +34,7 @@ const mockTasks: Task[] = [
     id: '3',
     title: 'Sentiment Analysis',
     description: 'Analyze customer feedback sentiment',
-    status: 'pending',
+    status: 'rejected',
     model: 'Sentiment Analyzer',
     createdAt: '30 minutes ago',
   },
@@ -42,17 +42,16 @@ const mockTasks: Task[] = [
     id: '4',
     title: 'Object Detection',
     description: 'Detect objects in video footage',
-    status: 'failed',
+    status: 'running',
     model: 'Object Detection',
     createdAt: '3 hours ago',
   },
 ];
 
 const statusConfig = {
-  pending: { icon: Clock, color: 'text-yellow-500', badge: 'secondary' },
+  rejected: { icon: Clock, color: 'text-yellow-500', badge: 'secondary' },
   running: { icon: Clock, color: 'text-blue-500', badge: 'default' },
   completed: { icon: CheckCircle2, color: 'text-green-500', badge: 'default' },
-  failed: { icon: AlertCircle, color: 'text-red-500', badge: 'destructive' },
 };
 
 export function TaskList() {
@@ -63,14 +62,11 @@ export function TaskList() {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="mb-2">Task List</h1>
-            <p className="text-muted-foreground">
-              Monitor and manage your AI tasks
-            </p>
+            <h1 className="mb-2">Задачи</h1>
           </div>
           <Button>
             <ListTodo className="w-4 h-4 mr-2" />
-            New Task
+            Новая задача
           </Button>
         </div>
 
@@ -103,11 +99,8 @@ export function TaskList() {
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm">
-                        View Details
+                        Просмотр задачи
                       </Button>
-                      {task.status === 'failed' && (
-                        <Button size="sm">Retry</Button>
-                      )}
                     </div>
                   </div>
                 </CardContent>

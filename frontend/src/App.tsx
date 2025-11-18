@@ -1,9 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { FileUpload } from './components/FileUpload.tsx';
-import { Workspace } from './components/Workspace';
-import { ModelList } from './components/ModelList.tsx';
-import { TaskList } from './components/TaskList.tsx';
-import { Header } from './components/Header';
+import { FileUpload } from '../components/FileUpload';
+import { Workspace } from '../components/Workspace';
+import { ModelList } from '../components/ModelList';
+import { TaskList } from '../components/TaskList';
+import { Header } from '../components/Header';
 
 export default function App() {
   return (

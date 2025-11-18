@@ -28,13 +28,13 @@ export function WorkspaceNavigation() {
           className="min-w-24"
         >
           <ChevronLeft className="w-4 h-4 mr-1" />
-          Previous
+          Назад
         </Button>
         
         <div className="flex items-center gap-2 min-w-32 justify-center">
-          <span className="text-muted-foreground">Page</span>
+          <span className="text-muted-foreground">Файл</span>
           <span>{currentPage}</span>
-          <span className="text-muted-foreground">of</span>
+          <span className="text-muted-foreground">из</span>
           <span>{totalPages}</span>
         </div>
         
@@ -44,7 +44,7 @@ export function WorkspaceNavigation() {
           disabled={currentPage === totalPages}
           className="min-w-24"
         >
-          Next
+          Вперед
           <ChevronRight className="w-4 h-4 ml-1" />
         </Button>
       </div>

@@ -35,7 +35,7 @@ export function AnnotationList() {
     <Card className="flex-1 flex flex-col min-h-0">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle>Annotations</CardTitle>
+          <CardTitle>Аннотации</CardTitle>
           <Badge variant="secondary">{annotations.length}</Badge>
         </div>
       </CardHeader>

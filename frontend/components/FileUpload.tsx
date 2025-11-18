@@ -21,7 +21,7 @@ export function FileUpload() {
   const handleUpload = () => {
     if (selectedFiles.length > 0) {
       // Handle file upload logic here
-      console.log('Uploading files:', selectedFiles);
+      console.log('Загрузка файлов:', selectedFiles);
       // Navigate to workspace after upload
       navigate('/workspace');
     }
@@ -31,9 +31,9 @@ export function FileUpload() {
     <div className="h-full flex items-center justify-center p-8">
       <div className="w-full max-w-2xl space-y-6">
         <div className="text-center mb-8">
-          <h1 className="mb-2">Upload Files</h1>
+          <h1 className="mb-2">Загрузите файлы</h1>
           <p className="text-muted-foreground">
-            Select files to upload and process
+            Выберите файлы для загрузки
           </p>
         </div>
 
@@ -55,11 +55,9 @@ export function FileUpload() {
             </div>
             <div>
               <p className="mb-1">
-                Drop files here or click to browse
+                Перетащите файлы или откройте проводник
               </p>
-              <p className="text-muted-foreground">
-                Support for multiple files
-              </p>
+
             </div>
           </label>
         </div>
@@ -68,7 +66,7 @@ export function FileUpload() {
         <div className="flex justify-center">
           <Button size="lg" asChild>
             <label htmlFor="file-input" className="cursor-pointer">
-              Select Files
+              Выберите файлы
             </label>
           </Button>
         </div>
@@ -76,7 +74,7 @@ export function FileUpload() {
         {/* Selected files list */}
         {selectedFiles.length > 0 && (
           <div className="space-y-3">
-            <p>Selected Files ({selectedFiles.length})</p>
+            <p>Выбран файл ({selectedFiles.length})</p>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {selectedFiles.map((file, index) => (
                 <div
@@ -102,7 +100,7 @@ export function FileUpload() {
             </div>
             
             <Button onClick={handleUpload} className="w-full" size="lg">
-              Upload {selectedFiles.length} {selectedFiles.length === 1 ? 'File' : 'Files'}
+              Загрузить {selectedFiles.length} {selectedFiles.length === 1 ? 'File' : 'Files'}
             </Button>
           </div>
         )}

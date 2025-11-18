@@ -3,9 +3,6 @@ import { Separator } from '../ui/separator';
 import {
   MousePointer2,
   Square,
-  Circle,
-  Type,
-  Pencil,
   Eraser,
   Move,
   ZoomIn,
@@ -14,19 +11,16 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-type Tool = 'select' | 'rectangle' | 'circle' | 'text' | 'draw' | 'erase' | 'move';
+type Tool = 'select' | 'rectangle' | 'erase' | 'move';
 
 export function WorkspaceToolbar() {
   const [activeTool, setActiveTool] = useState<Tool>('select');
 
   const tools = [
-    { id: 'select' as Tool, icon: MousePointer2, label: 'Select' },
-    { id: 'rectangle' as Tool, icon: Square, label: 'Rectangle' },
-    { id: 'circle' as Tool, icon: Circle, label: 'Circle' },
-    { id: 'text' as Tool, icon: Type, label: 'Text' },
-    { id: 'draw' as Tool, icon: Pencil, label: 'Draw' },
-    { id: 'erase' as Tool, icon: Eraser, label: 'Erase' },
-    { id: 'move' as Tool, icon: Move, label: 'Move' },
+    { id: 'select' as Tool, icon: MousePointer2, label: 'Выделение' },
+    { id: 'rectangle' as Tool, icon: Square, label: 'Ограничивающая рамка' },
+    { id: 'erase' as Tool, icon: Eraser, label: 'Стереть' },
+    { id: 'move' as Tool, icon: Move, label: 'Навигация' },
   ];
 
   return (

@@ -37,7 +37,7 @@ export function FileList() {
     <Card className="flex-1 flex flex-col min-h-0">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle>Files</CardTitle>
+          <CardTitle>Файлы</CardTitle>
           <Badge variant="secondary">{files.length}</Badge>
         </div>
       </CardHeader>

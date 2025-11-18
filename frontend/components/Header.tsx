@@ -7,7 +7,7 @@ export function Header() {
   const location = useLocation();
 
   return (
-    <footer className="border-t bg-background">
+    <header className="border-t bg-background">
       <div className="container mx-auto px-4 py-4">
         <div className="flex gap-3 justify-left">
           <Button
@@ -16,7 +16,7 @@ export function Header() {
             className="flex items-center gap-2"
           >
             <ListTodo className="w-4 h-4" />
-            Tasks
+            Задачи
           </Button>
           <Button
             onClick={() => navigate('/models')}
@@ -24,10 +24,10 @@ export function Header() {
             className="flex items-center gap-2"
           >
             <Box className="w-4 h-4" />
-            Models
+            Модели
           </Button>
         </div>
       </div>
-    </footer>
+    </header>
   );
 }
