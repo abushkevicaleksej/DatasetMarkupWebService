@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routers import create_api_router
 from app.infrastructure.database import create_tables, engine
@@ -10,7 +11,21 @@ from app.infrastructure.database import create_tables, engine
 create_tables()
 
 BASE_DIR = Path(__file__).resolve().parent
-app = FastAPI(title="Image Annotator", version="1.0.0")
+
+origins = [
+    "http://localhost:5173",
+    "localhost:5173"
+]
+
+app = FastAPI(title="Dataset Markup Web Service")
+
+app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 api_router = create_api_router()
 
