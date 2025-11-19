@@ -15,13 +15,6 @@ router = APIRouter()
 
 file_storage = {}
 
-@router.get("/workspace", response_class=HTMLResponse)
-async def workspace_page():
-    html_path = BASE_DIR / "static" / "templates" / "workspace.html"
-    with open(html_path, "r", encoding="utf-8") as f:
-        return f.read()
-
-
 @router.get("/files")
 async def get_all_files(db: Session = Depends(get_db)):
     from app.infrastructure.repositories.file_repository import FileRepository

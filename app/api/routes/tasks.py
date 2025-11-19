@@ -34,12 +34,6 @@ class TaskResponse(BaseModel):
     created_at: str
     updated_at: str
 
-@router.get("/tasks", response_class=HTMLResponse)
-async def tasks_page():
-    html_path = BASE_DIR / "static" / "templates" / "tasks.html"
-    with open(html_path, "r", encoding="utf-8") as f:
-        return f.read()
-
 @router.get("/api/tasks", response_class=JSONResponse)
 async def get_tasks(db: Session = Depends(get_db)):
     from app.infrastructure.repositories.task_repository import TaskRepository
