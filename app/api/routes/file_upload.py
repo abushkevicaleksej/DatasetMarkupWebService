@@ -40,7 +40,7 @@ async def upload_file(file: UploadFile = File(...)):
 
         return {
             **response,
-            "redirect_url": f"/api/routes/workspace"
+            "redirect_url": f"/workspace"
         }
 
     except ValueError as e:
