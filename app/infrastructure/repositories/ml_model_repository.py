@@ -19,6 +19,9 @@ class MLModelRepository:
     def get_model(self, model_id: str) -> Optional[MLModel]:
         return self.db.query(MLModel).filter(MLModel.id == model_id).first()
 
+    def get_models(self) -> List[MLModel]:
+        return self.db.query(MLModel).all()
+
     def get_active_models(self) -> List[MLModel]:
         return self.db.query(MLModel).filter(MLModel.is_active == True).all()
 
@@ -37,6 +40,7 @@ class MLModelRepository:
     def delete_model(self, model_id: str) -> bool:
         model = self.get_model(model_id)
         if model:
+            self.db.query(Prediction).filter(Prediction.model_id == model_id).delete()
             self.db.delete(model)
             self.db.commit()
             return True

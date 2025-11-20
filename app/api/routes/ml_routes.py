@@ -18,7 +18,7 @@ router = APIRouter()
 @router.get("/models", response_model=List[MLModelResponse])
 async def get_models(db: Session = Depends(get_db)):
     model_repo = MLModelRepository(db)
-    models = model_repo.get_active_models()
+    models = model_repo.get_models()
     return models
 
 
@@ -30,13 +30,18 @@ async def get_model(model_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Model not found")
     return model
 
-@router.delete("/models/{model_id}", response_model=MLModelResponse)
+@router.delete("/models/{model_id}")
 async def delete_model(model_id: str, db: Session = Depends(get_db)):
-    model_repo = MLModelRepository(db)
-    model = model_repo.delete_model(model_id)
-    if not model:
-        raise HTTPException(status_code=404, detail="Model not found")
-    return model
+    try:
+        model_repository = MLModelRepository(db)
+        success = model_repository.delete_model(model_id)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Model not found")
+            
+        return {"message": "Model deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/models", response_model=MLModelResponse)
 async def create_model(model_data: MLModelCreate, db: Session = Depends(get_db)):
