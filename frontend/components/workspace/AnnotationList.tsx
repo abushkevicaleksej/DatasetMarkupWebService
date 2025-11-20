@@ -14,12 +14,7 @@ interface Annotation {
 }
 
 export function AnnotationList() {
-  const [annotations, setAnnotations] = useState<Annotation[]>([
-    { id: '1', label: 'Object 1', type: 'rectangle', visible: true, color: 'bg-blue-500' },
-    { id: '2', label: 'Region A', type: 'circle', visible: true, color: 'bg-green-500' },
-    { id: '3', label: 'Text Label', type: 'text', visible: false, color: 'bg-yellow-500' },
-    { id: '4', label: 'Area B', type: 'rectangle', visible: true, color: 'bg-red-500' },
-  ]);
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
 
   const toggleVisibility = (id: string) => {
     setAnnotations(annotations.map(ann => 
