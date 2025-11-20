@@ -30,6 +30,13 @@ async def get_model(model_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Model not found")
     return model
 
+@router.delete("/models/{model_id}", response_model=MLModelResponse)
+async def delete_model(model_id: str, db: Session = Depends(get_db)):
+    model_repo = MLModelRepository(db)
+    model = model_repo.delete_model(model_id)
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+    return model
 
 @router.post("/models", response_model=MLModelResponse)
 async def create_model(model_data: MLModelCreate, db: Session = Depends(get_db)):
