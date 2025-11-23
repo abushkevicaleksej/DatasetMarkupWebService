@@ -19,6 +19,7 @@ export function Workspace() {
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Функция для загрузки файлов
   const fetchFiles = async () => {
     try {
       setLoading(true);
@@ -50,6 +51,7 @@ export function Workspace() {
     }
   };
 
+  // Функция для изменения активного файла
   const handleFileSelect = (fileId: string) => {
     setCurrentFileId(fileId);
     setFiles(prevFiles => 

@@ -7,7 +7,6 @@ import {
   Move,
   ZoomIn,
   ZoomOut,
-  RotateCcw,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -45,7 +44,6 @@ export function WorkspaceToolbar() {
       <Button variant="ghost" size="icon" title="Zoom Out">
         <ZoomOut className="w-5 h-5" />
       </Button>
-
     </div>
   );
 }

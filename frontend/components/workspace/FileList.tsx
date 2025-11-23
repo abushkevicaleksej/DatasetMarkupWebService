@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
 import { FileText, Image, Loader2, RefreshCw } from 'lucide-react';
-import { useState } from 'react'
+import { useState  } from 'react';
 
 interface WorkspaceFile {
   id: string;
