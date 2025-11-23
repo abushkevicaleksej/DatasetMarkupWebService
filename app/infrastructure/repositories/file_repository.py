@@ -28,7 +28,6 @@ class FileRepository:
         return db_file
     
     def get_by_id(self, file_id: str) -> Optional[File]:
-        print(file_id)
         return self.db.query(File).filter(File.id == file_id).first()
     
     def get_by_ids(self, file_ids: List[str]) -> List[File]:

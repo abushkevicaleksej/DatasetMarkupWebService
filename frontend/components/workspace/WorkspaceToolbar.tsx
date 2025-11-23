@@ -45,9 +45,7 @@ export function WorkspaceToolbar() {
       <Button variant="ghost" size="icon" title="Zoom Out">
         <ZoomOut className="w-5 h-5" />
       </Button>
-      <Button variant="ghost" size="icon" title="Reset">
-        <RotateCcw className="w-5 h-5" />
-      </Button>
+
     </div>
   );
 }
