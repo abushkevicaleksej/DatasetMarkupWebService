@@ -5,8 +5,8 @@ import {
   Square,
   Eraser,
   Move,
-  ZoomIn,
-  ZoomOut,
+  SaveIcon,
+  DownloadIcon
 } from 'lucide-react';
 
 type Tool = 'select' | 'rectangle' | 'erase' | 'move';
@@ -39,12 +39,12 @@ export function WorkspaceToolbar({ activeTool, setActiveTool }: WorkspaceToolbar
       ))}
       
       <Separator className="my-2" />
-      
-      <Button variant="ghost" size="icon" title="Zoom In">
-        <ZoomIn className="w-5 h-5" />
+    
+      <Button variant="ghost" size="icon" title="Сохранить задачу">
+        <SaveIcon className="w-5 h-5" />
       </Button>
-      <Button variant="ghost" size="icon" title="Zoom Out">
-        <ZoomOut className="w-5 h-5" />
+      <Button variant="ghost" size="icon" title="Экспортировать набор данных">
+        <DownloadIcon className="w-5 h-5" />
       </Button>
     </div>
   );

@@ -16,7 +16,6 @@ interface WorkspaceNavigationProps {
 }
 
 export function WorkspaceNavigation({ files, currentFileId, onFileChange }: WorkspaceNavigationProps) {
-  // Находим индекс текущего файла
   const currentIndex = files.findIndex(file => file.id === currentFileId);
   const totalFiles = files.length;
 
