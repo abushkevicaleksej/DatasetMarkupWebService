@@ -18,8 +18,8 @@ export function Workspace() {
   const [files, setFiles] = useState<WorkspaceFile[]>([]);
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTool, setActiveTool] = useState<'select' | 'rectangle' | 'erase' | 'move'>('select');
 
-  // Функция для загрузки файлов
   const fetchFiles = async () => {
     try {
       setLoading(true);
@@ -51,7 +51,6 @@ export function Workspace() {
     }
   };
 
-  // Функция для изменения активного файла
   const handleFileSelect = (fileId: string) => {
     setCurrentFileId(fileId);
     setFiles(prevFiles => 
@@ -75,9 +74,12 @@ export function Workspace() {
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col">
       <div className="flex-1 flex gap-4 p-4 overflow-hidden">
-        <WorkspaceToolbar />
+        <WorkspaceToolbar activeTool={activeTool} setActiveTool={setActiveTool} />
         
-        <WorkspaceCanvas currentFile={currentFile} />
+        <WorkspaceCanvas 
+          currentFile={currentFile} 
+          activeTool={activeTool}
+        />
         
         <div className="w-80 flex flex-col gap-4">
           <AnnotationList />

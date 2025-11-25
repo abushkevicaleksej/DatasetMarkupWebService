@@ -8,18 +8,20 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
-import { useState } from 'react';
 
 type Tool = 'select' | 'rectangle' | 'erase' | 'move';
 
-export function WorkspaceToolbar() {
-  const [activeTool, setActiveTool] = useState<Tool>('select');
+interface WorkspaceToolbarProps {
+  activeTool: Tool;
+  setActiveTool: (tool: Tool) => void;
+}
 
+export function WorkspaceToolbar({ activeTool, setActiveTool }: WorkspaceToolbarProps) {
   const tools = [
     { id: 'select' as Tool, icon: MousePointer2, label: 'Выделение' },
     { id: 'rectangle' as Tool, icon: Square, label: 'Ограничивающая рамка' },
     { id: 'erase' as Tool, icon: Eraser, label: 'Стереть' },
-    { id: 'move' as Tool, icon: Move, label: 'Навигация' },
+    { id: 'move' as Tool, icon: Move, label: 'Навигация. Зажмите ЛКМ для перемещения' },
   ];
 
   return (
