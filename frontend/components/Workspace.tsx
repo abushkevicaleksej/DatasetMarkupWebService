@@ -4,6 +4,7 @@ import { WorkspaceCanvas } from './workspace/WorkspaceCanvas';
 import { AnnotationList } from './workspace/AnnotationList';
 import { FileList } from './workspace/FileList';
 import { WorkspaceNavigation } from './workspace/WorkspaceNavigation';
+import { SaveTaskForm } from './workspace/SaveTaskForm';
 
 interface WorkspaceFile {
   id: string;
@@ -14,11 +15,30 @@ interface WorkspaceFile {
   file_path?: string;
 }
 
+interface TaskCreateRequest {
+  name: string;
+  description?: string;
+  file_ids: string[];
+}
+
+interface TaskResponse {
+  id: string;
+  name: string;
+  description?: string;
+  status: string;
+  file_count: number;
+  annotation_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export function Workspace() {
   const [files, setFiles] = useState<WorkspaceFile[]>([]);
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTool, setActiveTool] = useState<'select' | 'rectangle' | 'erase' | 'move'>('select');
+  const [showSaveForm, setShowSaveForm] = useState(false);
+  const [savingTask, setSavingTask] = useState(false);
 
   const fetchFiles = async () => {
     try {
@@ -51,6 +71,40 @@ export function Workspace() {
     }
   };
 
+  const handleSaveTask = async (taskData: TaskCreateRequest) => {
+    try {
+      setSavingTask(true);
+      
+      const response = await fetch('http://localhost:8000/api/routes/api/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(taskData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Ошибка при создании задачи');
+      }
+
+      const createdTask: TaskResponse = await response.json();
+      
+      console.log('Задача успешно создана:', createdTask);
+      
+      setShowSaveForm(false);
+      
+      alert(`Задача "${createdTask.name}" успешно создана!`);
+      
+      
+    } catch (error) {
+      console.error('Error saving task:', error);
+      alert(error instanceof Error ? error.message : 'Ошибка при сохранении задачи');
+    } finally {
+      setSavingTask(false);
+    }
+  };
+
   const handleFileSelect = (fileId: string) => {
     setCurrentFileId(fileId);
     setFiles(prevFiles => 
@@ -65,16 +119,30 @@ export function Workspace() {
     handleFileSelect(fileId);
   };
 
+  const handleSaveClick = () => {
+    if (files.length === 0) {
+      alert('Нет файлов для сохранения в задаче');
+      return;
+    }
+    setShowSaveForm(true);
+  };
+
   useEffect(() => {
     fetchFiles();
   }, []);
 
   const currentFile = files.find(file => file.id === currentFileId) || null;
+  const fileIds = files.map(file => file.id);
 
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col">
       <div className="flex-1 flex gap-4 p-4 overflow-hidden">
-        <WorkspaceToolbar activeTool={activeTool} setActiveTool={setActiveTool} />
+        <WorkspaceToolbar 
+          activeTool={activeTool}
+          setActiveTool={setActiveTool}
+          onSaveClick={handleSaveClick}
+          hasFiles={files.length > 0}
+        />
         
         <WorkspaceCanvas 
           currentFile={currentFile} 
@@ -97,6 +165,14 @@ export function Workspace() {
         files={files}
         currentFileId={currentFileId}
         onFileChange={handleFileChange}
+      />
+
+      <SaveTaskForm
+        isOpen={showSaveForm}
+        onClose={() => setShowSaveForm(false)}
+        onSave={handleSaveTask}
+        fileIds={fileIds}
+        loading={savingTask}
       />
     </div>
   );

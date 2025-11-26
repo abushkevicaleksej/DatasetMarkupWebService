@@ -5,7 +5,6 @@ from .routes import (
     tasks,
     file_export,
     annotations,
-    file_picker,
     ml_routes
 )
 
@@ -16,6 +15,5 @@ def create_api_router() -> APIRouter:
     api_router.include_router(tasks.router, prefix="/api/routes", tags=["tasks"])
     api_router.include_router(file_export.router, prefix="/api/routes", tags=["files"])
     api_router.include_router(annotations.router, prefix="/api/routes", tags=["annotations"])
-    api_router.include_router(file_picker.router, prefix="/api/routes", tags=["download"])
     api_router.include_router(ml_routes.router, prefix="/api/routes", tags=["ml-models"])
     return api_router

@@ -5,7 +5,7 @@ import {
   Square,
   Eraser,
   Move,
-  SaveIcon,
+  Save,
   DownloadIcon
 } from 'lucide-react';
 
@@ -14,9 +14,12 @@ type Tool = 'select' | 'rectangle' | 'erase' | 'move';
 interface WorkspaceToolbarProps {
   activeTool: Tool;
   setActiveTool: (tool: Tool) => void;
+  onSaveClick: () => void;
+  hasFiles: boolean;
 }
 
-export function WorkspaceToolbar({ activeTool, setActiveTool }: WorkspaceToolbarProps) {
+
+export function WorkspaceToolbar({ activeTool, setActiveTool, onSaveClick, hasFiles }: WorkspaceToolbarProps) {
   const tools = [
     { id: 'select' as Tool, icon: MousePointer2, label: 'Выделение' },
     { id: 'rectangle' as Tool, icon: Square, label: 'Ограничивающая рамка' },
@@ -40,8 +43,14 @@ export function WorkspaceToolbar({ activeTool, setActiveTool }: WorkspaceToolbar
       
       <Separator className="my-2" />
     
-      <Button variant="ghost" size="icon" title="Сохранить задачу">
-        <SaveIcon className="w-5 h-5" />
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        title="Сохранить задачу"
+        onClick={onSaveClick}
+        disabled={!hasFiles}
+      >
+        <Save className="w-5 h-5" />
       </Button>
       <Button variant="ghost" size="icon" title="Экспортировать набор данных">
         <DownloadIcon className="w-5 h-5" />
