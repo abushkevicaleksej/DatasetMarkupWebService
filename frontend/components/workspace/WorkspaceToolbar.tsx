@@ -5,8 +5,10 @@ import {
   Square,
   Eraser,
   Move,
+  ZoomIn,
+  ZoomOut,
   Save,
-  DownloadIcon
+  Eye,
 } from 'lucide-react';
 
 type Tool = 'select' | 'rectangle' | 'erase' | 'move';
@@ -16,15 +18,21 @@ interface WorkspaceToolbarProps {
   setActiveTool: (tool: Tool) => void;
   onSaveClick: () => void;
   hasFiles: boolean;
+  isTaskView?: boolean;
 }
 
-
-export function WorkspaceToolbar({ activeTool, setActiveTool, onSaveClick, hasFiles }: WorkspaceToolbarProps) {
+export function WorkspaceToolbar({ 
+  activeTool, 
+  setActiveTool, 
+  onSaveClick, 
+  hasFiles, 
+  isTaskView = false 
+}: WorkspaceToolbarProps) {
   const tools = [
     { id: 'select' as Tool, icon: MousePointer2, label: 'Выделение' },
     { id: 'rectangle' as Tool, icon: Square, label: 'Ограничивающая рамка' },
     { id: 'erase' as Tool, icon: Eraser, label: 'Стереть' },
-    { id: 'move' as Tool, icon: Move, label: 'Навигация. Зажмите ЛКМ для перемещения' },
+    { id: 'move' as Tool, icon: Move, label: 'Навигация' },
   ];
 
   return (
@@ -40,21 +48,29 @@ export function WorkspaceToolbar({ activeTool, setActiveTool, onSaveClick, hasFi
           <tool.icon className="w-5 h-5" />
         </Button>
       ))}
-      
+
       <Separator className="my-2" />
-    
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        title="Сохранить задачу"
-        onClick={onSaveClick}
-        disabled={!hasFiles}
-      >
-        <Save className="w-5 h-5" />
-      </Button>
-      <Button variant="ghost" size="icon" title="Экспортировать набор данных">
-        <DownloadIcon className="w-5 h-5" />
-      </Button>
+      
+      {isTaskView ? (
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          title="Режим просмотра задачи"
+          disabled
+        >
+          <Eye className="w-5 h-5" />
+        </Button>
+      ) : (
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          title="Сохранить задачу"
+          onClick={onSaveClick}
+          disabled={!hasFiles}
+        >
+          <Save className="w-5 h-5" />
+        </Button>
+      )}
     </div>
   );
 }

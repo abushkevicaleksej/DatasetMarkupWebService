@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
-import { FileText, Image, Loader2, RefreshCw } from 'lucide-react';
+import { FileText, Image, Loader2, RefreshCw, Eye } from 'lucide-react';
 import { useState  } from 'react';
 
 interface WorkspaceFile {
@@ -18,13 +18,14 @@ interface FileListProps {
   onFileSelect: (fileId: string) => void;
   onRefresh: () => void;
   loading: boolean;
+  isTaskView?: boolean;
 }
 
 const fileIcons = {
   image: Image,
 };
 
-export function FileList({ files, currentFileId, onFileSelect, onRefresh, loading }: FileListProps) {
+export function FileList({ files, currentFileId, onFileSelect, onRefresh, loading, isTaskView = false }: FileListProps) {
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -60,7 +61,9 @@ export function FileList({ files, currentFileId, onFileSelect, onRefresh, loadin
     <Card className="flex-1 flex flex-col min-h-0">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle>Файлы</CardTitle>
+          <CardTitle>
+            {isTaskView ? 'Файлы задачи' : 'Доступные файлы'}
+          </CardTitle>
           <div className="flex items-center gap-2">
             <Badge variant="secondary">{files.length}</Badge>
             <button
@@ -73,13 +76,20 @@ export function FileList({ files, currentFileId, onFileSelect, onRefresh, loadin
             </button>
           </div>
         </div>
+        {isTaskView && (
+          <p className="text-xs text-muted-foreground">
+            Файлы, привязанные к этой задаче
+          </p>
+        )}
       </CardHeader>
       <CardContent className="flex-1 min-h-0 px-3">
         <ScrollArea className="h-full pr-3">
           {files.length === 0 ? (
             <div className="text-center py-8">
               <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-              <p className="text-muted-foreground">Нет файлов</p>
+              <p className="text-muted-foreground">
+                {isTaskView ? 'В задаче нет файлов' : 'Нет доступных файлов'}
+              </p>
               <button 
                 onClick={handleRefresh}
                 className="text-primary hover:underline text-sm mt-2"
@@ -108,6 +118,9 @@ export function FileList({ files, currentFileId, onFileSelect, onRefresh, loadin
                       <p className="truncate text-sm font-medium">{file.name}</p>
                       <p className="text-muted-foreground text-xs truncate">{file.size}</p>
                     </div>
+                    {isTaskView && isActive && (
+                      <Eye className="w-4 h-4 text-primary flex-shrink-0" />
+                    )}
                   </div>
                 );
               })}

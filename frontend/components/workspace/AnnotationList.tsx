@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
-import { Trash2, Eye, EyeOff } from 'lucide-react';
-import { useState } from 'react';
+import { Trash2, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface Annotation {
   id: string;
@@ -13,8 +13,40 @@ interface Annotation {
   color: string;
 }
 
-export function AnnotationList() {
+interface AnnotationListProps {
+  taskId?: string | null;
+}
+
+export function AnnotationList({ taskId }: AnnotationListProps) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (taskId) {
+      fetchTaskAnnotations(taskId);
+    } else {
+      setAnnotations([]);
+    }
+  }, [taskId]);
+
+  const fetchTaskAnnotations = async (taskId: string) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`http://localhost:8000/api/routes/api/tasks/${taskId}/annotations`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const taskAnnotations = await response.json();
+      setAnnotations(taskAnnotations);
+    } catch (err) {
+      console.error('Error fetching task annotations:', err);
+      setAnnotations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleVisibility = (id: string) => {
     setAnnotations(annotations.map(ann => 
@@ -25,6 +57,22 @@ export function AnnotationList() {
   const deleteAnnotation = (id: string) => {
     setAnnotations(annotations.filter(ann => ann.id !== id));
   };
+
+  if (loading) {
+    return (
+      <Card className="flex-1 flex flex-col min-h-0">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle>Аннотации</CardTitle>
+            <Badge variant="secondary">0</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="flex-1 min-h-0 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="flex-1 flex flex-col min-h-0">
@@ -42,10 +90,13 @@ export function AnnotationList() {
                 key={annotation.id}
                 className="flex items-center gap-2 p-2 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
               >
-                <div className={`w-3 h-3 rounded-full ${annotation.color}`} />
+                <div 
+                  className={`w-3 h-3 rounded-full`}
+                  style={{ backgroundColor: annotation.color }}
+                />
                 <div className="flex-1 min-w-0">
-                  <p className="truncate">{annotation.label}</p>
-                  <p className="text-muted-foreground truncate">{annotation.type}</p>
+                  <p className="truncate text-sm font-medium">{annotation.label}</p>
+                  <p className="text-muted-foreground text-xs truncate">{annotation.type}</p>
                 </div>
                 <div className="flex gap-1">
                   <Button

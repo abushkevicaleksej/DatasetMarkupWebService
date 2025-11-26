@@ -83,6 +83,57 @@ async def create_task(task_data: TaskCreateRequest, db: Session = Depends(get_db
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
+@router.get("/api/tasks/{task_id}/files")
+async def get_task_files(task_id: str, db: Session = Depends(get_db)):
+    from app.infrastructure.repositories.task_repository import TaskRepository
+    try:
+        task_repository = TaskRepository(db)
+        task = task_repository.get_by_id(task_id)
+        
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        
+        files = task.files
+        
+        return [
+            {
+                "id": file.id,
+                "original_filename": file.original_filename,
+                "file_size": file.file_size,
+                "file_path": file.file_path,
+                "mime_type": file.mime_type
+            }
+            for file in files
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@router.get("/api/tasks/{task_id}/annotations")
+async def get_task_annotations(task_id: str, db: Session = Depends(get_db)):
+    from app.infrastructure.repositories.task_repository import TaskRepository
+
+    try:
+        task_repository = TaskRepository(db)
+        task = task_repository.get_by_id(task_id)
+        
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        
+        annotations = task.annotations
+        
+        return [
+            {
+                "id": str(annotation.id),
+                "label": annotation.label,
+                "type": annotation.annotation_type,
+                "visible": True,
+                "color": annotation.color or "#3b82f6"
+            }
+            for annotation in annotations
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
 @router.delete("/api/tasks/{task_id}")
 async def delete_task(task_id: str, db: Session = Depends(get_db)):
     from app.infrastructure.repositories.task_repository import TaskRepository

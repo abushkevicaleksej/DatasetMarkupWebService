@@ -2,7 +2,8 @@ import { createContext, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { ListTodo, Clock, CheckCircle2, Trash2, Loader2 } from 'lucide-react';
+import { ListTodo, Clock, CheckCircle2, Trash2, Loader2, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface Task {
   id: string;
@@ -34,6 +35,7 @@ export function TaskList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingTasks, setDeletingTasks] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
 
   const fetchTasks = async () => {
     try {
@@ -88,6 +90,10 @@ export function TaskList() {
     }
   };
 
+  const handleViewTask = (taskId: string) => {
+    navigate(`/workspace?taskId=${taskId}`);
+  };
+
   useEffect(() => {
     fetchTasks();
   }, []);
@@ -117,7 +123,7 @@ export function TaskList() {
             <div>
               <h1 className="mb-2 text-3xl font-bold">Задачи</h1>
             </div>
-            <Button>
+            <Button onClick={() => navigate('/workspace')}>
               <ListTodo className="w-4 h-4 mr-2" />
               Новая задача
             </Button>
@@ -161,7 +167,12 @@ export function TaskList() {
                           <span>Аннотаций: {task.annotation_count}</span>
                         </div>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewTask(task.id)}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
                             Просмотр задачи
                           </Button>
                           <Button 

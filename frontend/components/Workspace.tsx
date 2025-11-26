@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { WorkspaceToolbar } from './workspace/WorkspaceToolbar';
 import { WorkspaceCanvas } from './workspace/WorkspaceCanvas';
 import { AnnotationList } from './workspace/AnnotationList';
@@ -39,8 +40,45 @@ export function Workspace() {
   const [activeTool, setActiveTool] = useState<'select' | 'rectangle' | 'erase' | 'move'>('select');
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [savingTask, setSavingTask] = useState(false);
+  const [currentTask, setCurrentTask] = useState<TaskResponse | null>(null);
+  
+  const [searchParams] = useSearchParams();
+  const taskId = searchParams.get('taskId');
 
-  const fetchFiles = async () => {
+  // Функция для загрузки файлов, привязанных к задаче
+  const fetchTaskFiles = async (taskId: string) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`http://localhost:8000/api/routes/api/tasks/${taskId}/files`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const apiFiles = await response.json();
+      
+      const workspaceFiles: WorkspaceFile[] = apiFiles.map((apiFile: any, index: number) => ({
+        id: apiFile.id,
+        name: apiFile.original_filename,
+        type: 'image',
+        size: formatFileSize(apiFile.file_size),
+        active: index === 0,
+        file_path: apiFile.file_path
+      }));
+      
+      setFiles(workspaceFiles);
+      if (workspaceFiles.length > 0) {
+        setCurrentFileId(workspaceFiles[0].id);
+      }
+    } catch (err) {
+      console.error('Error fetching task files:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Функция для загрузки всех файлов (не привязанных к задаче)
+  const fetchAllFiles = async () => {
     try {
       setLoading(true);
       const response = await fetch('http://localhost:8000/api/routes/files');
@@ -65,12 +103,29 @@ export function Workspace() {
         setCurrentFileId(workspaceFiles[0].id);
       }
     } catch (err) {
-      console.error('Error fetching files:', err);
+      console.error('Error fetching all files:', err);
     } finally {
       setLoading(false);
     }
   };
 
+  // Функция для загрузки информации о задаче
+  const fetchTaskInfo = async (taskId: string) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/routes/api/tasks/${taskId}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const task: TaskResponse = await response.json();
+      setCurrentTask(task);
+    } catch (err) {
+      console.error('Error fetching task info:', err);
+    }
+  };
+
+  // Функция для сохранения задачи
   const handleSaveTask = async (taskData: TaskCreateRequest) => {
     try {
       setSavingTask(true);
@@ -93,7 +148,6 @@ export function Workspace() {
       console.log('Задача успешно создана:', createdTask);
       
       setShowSaveForm(false);
-      
       alert(`Задача "${createdTask.name}" успешно создана!`);
       
       
@@ -105,6 +159,7 @@ export function Workspace() {
     }
   };
 
+  // Функция для изменения активного файла
   const handleFileSelect = (fileId: string) => {
     setCurrentFileId(fileId);
     setFiles(prevFiles => 
@@ -127,21 +182,59 @@ export function Workspace() {
     setShowSaveForm(true);
   };
 
+  // Функция для обновления списка файлов
+  const handleRefreshFiles = () => {
+    if (taskId) {
+      fetchTaskFiles(taskId);
+    } else {
+      fetchAllFiles();
+    }
+  };
+
+  // Загрузка данных в зависимости от наличия taskId
   useEffect(() => {
-    fetchFiles();
-  }, []);
+    if (taskId) {
+      // Режим просмотра задачи: загружаем файлы задачи и информацию о ней
+      fetchTaskFiles(taskId);
+      fetchTaskInfo(taskId);
+    } else {
+      // Режим создания новой задачи: загружаем все доступные файлы
+      fetchAllFiles();
+      setCurrentTask(null);
+    }
+  }, [taskId]);
 
   const currentFile = files.find(file => file.id === currentFileId) || null;
   const fileIds = files.map(file => file.id);
 
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col">
+      {/* Заголовок с информацией о задаче (только в режиме просмотра) */}
+      {currentTask && (
+        <div className="bg-primary/10 border-b px-4 py-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold">{currentTask.name}</h2>
+              {currentTask.description && (
+                <p className="text-sm text-muted-foreground">{currentTask.description}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-4 text-sm">
+              <span>Статус: {currentTask.status}</span>
+              <span>Файлов: {currentTask.file_count}</span>
+              <span>Аннотаций: {currentTask.annotation_count}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 flex gap-4 p-4 overflow-hidden">
         <WorkspaceToolbar 
           activeTool={activeTool}
           setActiveTool={setActiveTool}
           onSaveClick={handleSaveClick}
           hasFiles={files.length > 0}
+          isTaskView={!!taskId}
         />
         
         <WorkspaceCanvas 
@@ -150,13 +243,14 @@ export function Workspace() {
         />
         
         <div className="w-80 flex flex-col gap-4">
-          <AnnotationList />
+          <AnnotationList taskId={taskId} />
           <FileList 
             files={files}
             currentFileId={currentFileId}
             onFileSelect={handleFileSelect}
-            onRefresh={fetchFiles}
+            onRefresh={handleRefreshFiles}
             loading={loading}
+            isTaskView={!!taskId}
           />
         </div>
       </div>
@@ -167,13 +261,16 @@ export function Workspace() {
         onFileChange={handleFileChange}
       />
 
-      <SaveTaskForm
-        isOpen={showSaveForm}
-        onClose={() => setShowSaveForm(false)}
-        onSave={handleSaveTask}
-        fileIds={fileIds}
-        loading={savingTask}
-      />
+      {/* Форма сохранения задачи (только в режиме создания) */}
+      {!taskId && (
+        <SaveTaskForm
+          isOpen={showSaveForm}
+          onClose={() => setShowSaveForm(false)}
+          onSave={handleSaveTask}
+          fileIds={fileIds}
+          loading={savingTask}
+        />
+      )}
     </div>
   );
 }
