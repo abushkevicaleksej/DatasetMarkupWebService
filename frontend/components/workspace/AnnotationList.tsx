@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
-import { Trash2, Eye, EyeOff, Edit3, Save } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Trash2, Edit3, Save, X } from 'lucide-react';
+import { useState } from 'react';
 import { useAnnotations } from '../hooks/useAnnotations';
 import { BoundingBox } from '../types/annotations';
 
@@ -13,57 +13,28 @@ interface AnnotationListProps {
 }
 
 export function AnnotationList({ taskId, currentFileId }: AnnotationListProps) {
-  const { annotations, selectedBoundingBox, updateBoundingBox, deleteBoundingBox, selectBoundingBox } = useAnnotations();
-  const [editingBbox, setEditingBbox] = useState<BoundingBox | null>(null);
+  const { 
+    annotations, 
+    selectBoundingBox, 
+    updateBoundingBox, 
+    deleteBoundingBox,
+    selectedBoundingBox
+  } = useAnnotations();
+  
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
 
-  const getCurrentFileAnnotations = () => {
-    if (!currentFileId) return [];
-    return annotations.filter(ann => ann.file_id === currentFileId);
-  };
-
-  const currentAnnotations = getCurrentFileAnnotations();
-  const currentBoundingBoxes = currentAnnotations.flatMap(ann => ann.bounding_boxes);
-
-  useEffect(() => {
-    console.log('Annotations updated:', currentBoundingBoxes.length);
-  }, [currentBoundingBoxes]);
-
-  useEffect(() => {
-    console.log('Current file changed:', currentFileId);
-  }, [currentFileId]);
+  const currentAnnotation = annotations.find(ann => ann.file_id === currentFileId);
+  const boxes = currentAnnotation?.bounding_boxes || [];
 
   const startEditing = (bbox: BoundingBox) => {
-    setEditingBbox(bbox);
+    setEditingId(bbox.id);
     setEditLabel(bbox.label);
   };
 
-  const saveEdit = () => {
-    if (editingBbox) {
-      updateBoundingBox(editingBbox.id, { label: editLabel });
-      setEditingBbox(null);
-      setEditLabel('');
-    }
-  };
-
-  const cancelEdit = () => {
-    setEditingBbox(null);
-    setEditLabel('');
-  };
-
-  const toggleVisibility = (bboxId: string) => {
-    const bbox = currentBoundingBoxes.find(b => b.id === bboxId);
-    if (bbox) {
-      if (bbox.isSelected) {
-        selectBoundingBox(null);
-      } else {
-        selectBoundingBox(bbox);
-      }
-    }
-  };
-
-  const handleBboxClick = (bbox: BoundingBox) => {
-    selectBoundingBox(bbox);
+  const saveEdit = async (id: string) => {
+    await updateBoundingBox(id, { label: editLabel });
+    setEditingId(null);
   };
 
   return (
@@ -71,97 +42,67 @@ export function AnnotationList({ taskId, currentFileId }: AnnotationListProps) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle>Аннотации</CardTitle>
-          <Badge variant="secondary">{currentBoundingBoxes.length}</Badge>
+          <Badge variant="secondary">{boxes.length}</Badge>
         </div>
       </CardHeader>
       <CardContent className="flex-1 min-h-0 px-3">
         <ScrollArea className="h-full pr-3">
           <div className="space-y-2">
-            {currentBoundingBoxes.map((bbox) => (
+            {boxes.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">Нет аннотаций</p>
+            )}
+            {boxes.map((bbox) => (
               <div
                 key={bbox.id}
-                className={`flex items-center gap-2 p-2 rounded-lg border transition-colors ${
-                  bbox.isSelected 
-                    ? 'bg-primary/10 border-primary' 
+                className={`flex items-center gap-2 p-2 rounded-lg border transition-colors cursor-pointer ${
+                  bbox.isSelected || selectedBoundingBox?.id === bbox.id
+                    ? 'bg-blue-50 border-blue-200' 
                     : 'bg-card hover:bg-accent/50'
                 }`}
-                onClick={() => handleBboxClick(bbox)}
+                onClick={() => selectBoundingBox(bbox)}
               >
                 <div 
                   className="w-3 h-3 rounded-full flex-shrink-0"
                   style={{ backgroundColor: bbox.color }}
                 />
+                
                 <div className="flex-1 min-w-0">
-                  {editingBbox?.id === bbox.id ? (
+                  {editingId === bbox.id ? (
                     <input
-                      type="text"
+                      className="w-full text-sm border rounded px-1"
                       value={editLabel}
                       onChange={(e) => setEditLabel(e.target.value)}
-                      className="w-full text-sm border rounded px-1 py-0.5"
+                      onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') saveEdit();
-                        if (e.key === 'Escape') cancelEdit();
+                        if(e.key === 'Enter') saveEdit(bbox.id);
                       }}
                       autoFocus
                     />
                   ) : (
-                    <>
-                      <p className="truncate text-sm font-medium">{bbox.label}</p>
-                      <p className="text-muted-foreground text-xs truncate">
-                        {Math.round(bbox.width * 100)}% × {Math.round(bbox.height * 100)}%
-                      </p>
-                    </>
+                    <p className="truncate text-sm font-medium">{bbox.label}</p>
                   )}
+                  <p className="text-muted-foreground text-xs">
+                    conf: {bbox.confidence?.toFixed(2) || '1.0'}
+                  </p>
                 </div>
-                <div className="flex gap-1">
-                  {editingBbox?.id === bbox.id ? (
+
+                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                  {editingId === bbox.id ? (
                     <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={saveEdit}
-                      >
+                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => saveEdit(bbox.id)}>
                         <Save className="w-3 h-3" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={cancelEdit}
-                      >
-                        <span className="text-xs">×</span>
+                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditingId(null)}>
+                        <X className="w-3 h-3" />
                       </Button>
                     </>
                   ) : (
                     <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => startEditing(bbox)}
-                      >
+                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => startEditing(bbox)}>
                         <Edit3 className="w-3 h-3" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => toggleVisibility(bbox.id)}
-                      >
-                        {bbox.isSelected ? (
-                          <Eye className="w-3 h-3" />
-                        ) : (
-                          <EyeOff className="w-3 h-3 text-muted-foreground" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => deleteBoundingBox(bbox.id)}
-                      >
-                        <Trash2 className="w-3 h-3 text-destructive" />
+                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => deleteBoundingBox(bbox.id)}>
+                        <Trash2 className="w-3 h-3 text-red-500" />
                       </Button>
                     </>
                   )}

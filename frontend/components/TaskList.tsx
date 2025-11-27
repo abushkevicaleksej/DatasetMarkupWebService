@@ -123,7 +123,7 @@ export function TaskList() {
             <div>
               <h1 className="mb-2 text-3xl font-bold">Задачи</h1>
             </div>
-            <Button onClick={() => navigate('/workspace')}>
+            <Button onClick={() => navigate('/upload')}>
               <ListTodo className="w-4 h-4 mr-2" />
               Новая задача
             </Button>

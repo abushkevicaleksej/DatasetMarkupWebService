@@ -6,6 +6,7 @@ import { AnnotationList } from './workspace/AnnotationList';
 import { FileList } from './workspace/FileList';
 import { WorkspaceNavigation } from './workspace/WorkspaceNavigation';
 import { SaveTaskForm } from './workspace/SaveTaskForm';
+import { AnnotationsProvider } from './workspace/AnnotationsContext';
 
 interface WorkspaceFile {
   id: string;
@@ -42,9 +43,9 @@ export function Workspace() {
   const [savingTask, setSavingTask] = useState(false);
   const [currentTask, setCurrentTask] = useState<TaskResponse | null>(null);
   
-  const [searchParams] = useSearchParams();
+  // ИЗМЕНЕНИЕ 1: Получаем функцию setSearchParams
+  const [searchParams, setSearchParams] = useSearchParams();
   const taskId = searchParams.get('taskId');
-  console.log(taskId)
 
   const fetchTaskFiles = async (taskId: string) => {
     try {
@@ -145,8 +146,13 @@ export function Workspace() {
       console.log('Задача успешно создана:', createdTask);
       
       setShowSaveForm(false);
-      alert(`Задача "${createdTask.name}" успешно создана!`);
       
+      // ИЗМЕНЕНИЕ 2: Обновляем URL без перезагрузки страницы.
+      // Это спровоцирует срабатывание useEffect ниже, который загрузит контекст задачи.
+      setSearchParams({ taskId: createdTask.id });
+      
+      // Опционально можно убрать alert, так как интерфейс визуально изменится (появится хедер задачи)
+      // alert(`Задача "${createdTask.name}" успешно создана!`); 
       
     } catch (error) {
       console.error('Error saving task:', error);
@@ -186,6 +192,7 @@ export function Workspace() {
     }
   };
 
+  // Этот эффект сработает автоматически, когда мы вызовем setSearchParams
   useEffect(() => {
     if (taskId) {
       fetchTaskFiles(taskId);
@@ -200,69 +207,71 @@ export function Workspace() {
   const fileIds = files.map(file => file.id);
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col">
-      {currentTask && (
-        <div className="bg-primary/10 border-b px-4 py-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-semibold">{currentTask.name}</h2>
-              {currentTask.description && (
-                <p className="text-sm text-muted-foreground">{currentTask.description}</p>
-              )}
-            </div>
-            <div className="flex items-center gap-4 text-sm">
-              <span>Статус: {currentTask.status}</span>
-              <span>Файлов: {currentTask.file_count}</span>
-              <span>Аннотаций: {currentTask.annotation_count}</span>
+    <AnnotationsProvider>
+      <div className="h-[calc(100vh-8rem)] flex flex-col">
+        {currentTask && (
+          <div className="bg-primary/10 border-b px-4 py-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold">{currentTask.name}</h2>
+                {currentTask.description && (
+                  <p className="text-sm text-muted-foreground">{currentTask.description}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <span>Статус: {currentTask.status}</span>
+                <span>Файлов: {currentTask.file_count}</span>
+                <span>Аннотаций: {currentTask.annotation_count}</span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="flex-1 flex gap-4 p-4 overflow-hidden">
-        <WorkspaceToolbar 
-          activeTool={activeTool}
-          setActiveTool={setActiveTool}
-          onSaveClick={handleSaveClick}
-          hasFiles={files.length > 0}
-          isTaskView={!!taskId}
-        />
-        
-        <WorkspaceCanvas 
-          currentFile={currentFile} 
-          activeTool={activeTool}
-          taskId={taskId}
-        />
-        
-        <div className="w-80 flex flex-col gap-4">
-          <AnnotationList taskId={taskId} currentFileId={currentFile?.id} />
-          <FileList 
-            files={files}
-            currentFileId={currentFileId}
-            onFileSelect={handleFileSelect}
-            onRefresh={handleRefreshFiles}
-            loading={loading}
+        <div className="flex-1 flex gap-4 p-4 overflow-hidden">
+          <WorkspaceToolbar 
+            activeTool={activeTool}
+            setActiveTool={setActiveTool}
+            onSaveClick={handleSaveClick}
+            hasFiles={files.length > 0}
             isTaskView={!!taskId}
           />
+          
+          <WorkspaceCanvas 
+            currentFile={currentFile} 
+            activeTool={activeTool}
+            taskId={taskId}
+          />
+          
+          <div className="w-80 flex flex-col gap-4">
+            <AnnotationList taskId={taskId} currentFileId={currentFile?.id} />
+            <FileList 
+              files={files}
+              currentFileId={currentFileId}
+              onFileSelect={handleFileSelect}
+              onRefresh={handleRefreshFiles}
+              loading={loading}
+              isTaskView={!!taskId}
+            />
+          </div>
         </div>
-      </div>
-      
-      <WorkspaceNavigation 
-        files={files}
-        currentFileId={currentFileId}
-        onFileChange={handleFileChange}
-      />
-
-      {!taskId && (
-        <SaveTaskForm
-          isOpen={showSaveForm}
-          onClose={() => setShowSaveForm(false)}
-          onSave={handleSaveTask}
-          fileIds={fileIds}
-          loading={savingTask}
+        
+        <WorkspaceNavigation 
+          files={files}
+          currentFileId={currentFileId}
+          onFileChange={handleFileChange}
         />
-      )}
-    </div>
+
+        {!taskId && (
+          <SaveTaskForm
+            isOpen={showSaveForm}
+            onClose={() => setShowSaveForm(false)}
+            onSave={handleSaveTask}
+            fileIds={fileIds}
+            loading={savingTask}
+          />
+        )}
+      </div>
+    </AnnotationsProvider>
   );
 }
 
