@@ -7,6 +7,8 @@ import {
   ZoomOut,
 } from 'lucide-react';
 
+// todo im tired of making this sheet
+
 interface WorkspaceFile {
   id: string;
   name: string;
@@ -188,7 +190,7 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     }
 
     if (activeTool === 'rectangle' && e.button === 0) {
-      startDrawing(e.clientX, e.clientY, rect, scale);
+      startDrawing(e.clientX, e.clientY, rect, scale, position);
       return;
     }
 
@@ -253,7 +255,7 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     }
 
     if (isDrawing && activeTool === 'rectangle') {
-      updateDrawing(e.clientX, e.clientY, rect, scale);
+      updateDrawing(e.clientX, e.clientY, rect, scale, position);
       return;
     }
 

@@ -5,17 +5,17 @@ export interface BoundingBox {
   width: number;
   height: number;
   label: string;
+  confidence: number;
   color: string;
-  isSelected?: boolean;
-  isEditing?: boolean;
+  isSelected: boolean;
 }
 
 export interface Annotation {
   id: string;
   file_id: string;
-  task_id?: string;
+  task_id: string;
   bounding_boxes: BoundingBox[];
-  created_at?: string;
+  created_at: string;
 }
 
 export interface AnnotationCreateRequest {

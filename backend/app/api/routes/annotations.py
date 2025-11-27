@@ -94,6 +94,25 @@ async def get_annotations_for_file(file_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.put("/annotations/bbox/{bbox_id}")
+async def update_bounding_box_label(bbox_id: str, update_data: dict, db: Session = Depends(get_db)):
+    from app.infrastructure.repositories.annotation_repository import AnnotationRepository
+    
+    try:
+        annotation_repository = AnnotationRepository(db)
+        
+        success = annotation_repository.update_bounding_box_label(
+            bbox_id=bbox_id, 
+            new_label=update_data.get("label")
+        )
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Bounding box not found")
+            
+        return {"message": "Bounding box label updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.delete("/annotations/{annotation_id}")
 async def delete_annotation(annotation_id: str, db: Session = Depends(get_db)):
     from app.infrastructure.repositories.annotation_repository import AnnotationRepository

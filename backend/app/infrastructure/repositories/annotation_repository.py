@@ -50,6 +50,18 @@ class AnnotationRepository:
             )\
             .all()
     
+    def update_bounding_box_label(self, bbox_id: str, new_label: str) -> bool:
+        try:
+            bbox = self.db.query(BoundingBox).filter(BoundingBox.id == bbox_id).first()
+            if bbox:
+                bbox.label = new_label
+                self.db.commit()
+                return True
+            return False
+        except Exception as e:
+            self.db.rollback()
+            raise e
+
     def delete_bounding_box(self, bbox_id: str) -> bool:
         bbox = self.db.query(BoundingBox).filter(BoundingBox.id == bbox_id).first()
         if bbox:

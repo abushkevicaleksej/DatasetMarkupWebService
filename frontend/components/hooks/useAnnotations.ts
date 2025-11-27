@@ -1,275 +1,305 @@
+// hooks/useAnnotations.ts
 import { useState, useCallback } from 'react';
-import { BoundingBox, Annotation, AnnotationCreateRequest } from '../types/annotations';
+import { BoundingBox, Annotation } from '../types/annotations';
 
-export const useAnnotations = () => {
+export function useAnnotations() {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [selectedBoundingBox, setSelectedBoundingBox] = useState<BoundingBox | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentBoundingBox, setCurrentBoundingBox] = useState<Partial<BoundingBox> | null>(null);
 
-  const generateRandomColor = useCallback(() => {
-    const colors = [
-      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-      '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
-      '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D7BDE2'
-    ];
-    return colors[Math.floor(Math.random() * colors.length)];
+  // Функция для поиска annotationId по bboxId
+  const findAnnotationIdByBboxId = useCallback((bboxId: string): string | null => {
+    for (const annotation of annotations) {
+      for (const bbox of annotation.bounding_boxes) {
+        if (bbox.id === bboxId) {
+          return annotation.id;
+        }
+      }
+    }
+    return null;
+  }, [annotations]);
+
+  const loadAnnotationsForFile = useCallback(async (fileId: string) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/routes/annotations/file/${fileId}`);
+      
+      if (!response.ok) {
+        // Если файл не имеет аннотаций, это нормально - возвращаем пустой массив
+        if (response.status === 404) {
+          setAnnotations([]);
+          return;
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Loaded annotations for file', fileId, ':', data);
+      
+      const formattedAnnotations: Annotation[] = data.map((item: any) => ({
+        id: item.id,
+        file_id: item.file_id,
+        task_id: item.task_id,
+        bounding_boxes: item.bounding_boxes.map((bbox: any) => ({
+          id: bbox.id,
+          x: bbox.x,
+          y: bbox.y,
+          width: bbox.width,
+          height: bbox.height,
+          label: bbox.label,
+          confidence: bbox.confidence,
+          color: '#3B82F6', // Добавляем цвет по умолчанию
+          isSelected: false
+        })),
+        created_at: item.created_at
+      }));
+      
+      setAnnotations(formattedAnnotations);
+    } catch (error) {
+      console.error('Error loading annotations:', error);
+      setAnnotations([]);
+    }
   }, []);
 
-  const startDrawing = useCallback((x: number, y: number, containerRect: DOMRect, imageScale: number) => {
+  // Исправленная функция startDrawing
+  const startDrawing = useCallback((clientX: number, clientY: number, rect: DOMRect, scale: number, position: { x: number, y: number }) => {
     setIsDrawing(true);
-    const relativeX = (x - containerRect.left) / (containerRect.width * imageScale);
-    const relativeY = (y - containerRect.top) / (containerRect.height * imageScale);
+    const x = (clientX - rect.left - position.x) / (rect.width * scale);
+    const y = (clientY - rect.top - position.y) / (rect.height * scale);
     
     setCurrentBoundingBox({
-      x: relativeX,
-      y: relativeY,
+      x,
+      y,
       width: 0,
       height: 0,
-      label: 'Object',
-      color: generateRandomColor(),
+      label: 'object',
+      color: '#3B82F6',
+      isSelected: true
     });
-  }, [generateRandomColor]);
+  }, []);
 
-  const updateDrawing = useCallback((x: number, y: number, containerRect: DOMRect, imageScale: number) => {
-    if (!isDrawing || !currentBoundingBox || currentBoundingBox.x === undefined || currentBoundingBox.y === undefined) return;
-
-    const relativeX = (x - containerRect.left) / (containerRect.width * imageScale);
-    const relativeY = (y - containerRect.top) / (containerRect.height * imageScale);
+  // Исправленная функция updateDrawing
+  const updateDrawing = useCallback((clientX: number, clientY: number, rect: DOMRect, scale: number, position: { x: number, y: number }) => {
+    if (!currentBoundingBox || currentBoundingBox.x === undefined || currentBoundingBox.y === undefined) return;
     
-    const width = relativeX - currentBoundingBox.x;
-    const height = relativeY - currentBoundingBox.y;
+    const currentX = (clientX - rect.left - position.x) / (rect.width * scale);
+    const currentY = (clientY - rect.top - position.y) / (rect.height * scale);
+    
+    const width = Math.max(0, currentX - currentBoundingBox.x);
+    const height = Math.max(0, currentY - currentBoundingBox.y);
+    
+    setCurrentBoundingBox(prev => prev ? { ...prev, width, height } : null);
+  }, [currentBoundingBox]);
 
-    setCurrentBoundingBox(prev => ({
-      ...prev,
-      width: Math.max(0, width),
-      height: Math.max(0, height),
-    }));
-  }, [isDrawing, currentBoundingBox]);
-
-  const finishDrawing = useCallback((fileId: string, taskId?: string) => {
-    if (!isDrawing || !currentBoundingBox || 
-        !currentBoundingBox.x || !currentBoundingBox.y ||
-        !currentBoundingBox.width || !currentBoundingBox.height) {
+  const finishDrawing = useCallback(async (fileId: string, taskId?: string) => {
+    if (!currentBoundingBox || 
+        currentBoundingBox.x === undefined || 
+        currentBoundingBox.y === undefined ||
+        currentBoundingBox.width === undefined || 
+        currentBoundingBox.height === undefined ||
+        currentBoundingBox.width === 0 || 
+        currentBoundingBox.height === 0) {
       setIsDrawing(false);
       setCurrentBoundingBox(null);
       return;
     }
 
-    const newBoundingBox: BoundingBox = {
-      id: `bbox-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      x: currentBoundingBox.x,
-      y: currentBoundingBox.y,
-      width: currentBoundingBox.width,
-      height: currentBoundingBox.height,
-      label: currentBoundingBox.label || 'Object',
-      color: currentBoundingBox.color || generateRandomColor(),
-      isSelected: true,
-    };
-
-    setAnnotations(prev => {
-      console.log("ok")
-      const existingAnnotation = prev.find(ann => ann.file_id === fileId);
-      if (existingAnnotation) {
-        return prev.map(ann => 
-          ann.file_id === fileId 
-            ? { ...ann, bounding_boxes: [...ann.bounding_boxes, newBoundingBox] }
-            : ann
-        );
-      } else {
-        return [...prev, {
-          id: `ann-${Date.now()}`,
-          file_id: fileId,
-          task_id: taskId,
-          bounding_boxes: [newBoundingBox],
-          created_at: new Date().toISOString(),
-        }];
-      }
-    });
-
-    setSelectedBoundingBox(newBoundingBox);
-    setIsDrawing(false);
-    setCurrentBoundingBox(null);
-  }, [isDrawing, currentBoundingBox, generateRandomColor]);
-
-  const selectBoundingBox = useCallback((bbox: BoundingBox | null) => {
-    setSelectedBoundingBox(bbox);
-    
-    setAnnotations(prev => prev.map(annotation => ({
-      ...annotation,
-      bounding_boxes: annotation.bounding_boxes.map(bbox => ({
-        ...bbox,
-        isSelected: false,
-        isEditing: false,
-      }))
-    })));
-
-    if (bbox) {
-      setAnnotations(prev => prev.map(annotation => ({
-        ...annotation,
-        bounding_boxes: annotation.bounding_boxes.map(existingBbox => 
-          existingBbox.id === bbox.id 
-            ? { ...existingBbox, isSelected: true }
-            : existingBbox
-        )
-      })));
-    }
-  }, []);
-
-  const updateBoundingBox = useCallback((bboxId: string, updates: Partial<BoundingBox>) => {
-    setAnnotations(prev => prev.map(annotation => ({
-      ...annotation,
-      bounding_boxes: annotation.bounding_boxes.map(bbox => 
-        bbox.id === bboxId ? { ...bbox, ...updates } : bbox
-      )
-    })));
-
-    if (selectedBoundingBox?.id === bboxId) {
-      setSelectedBoundingBox(prev => prev ? { ...prev, ...updates } : null);
-    }
-  }, [selectedBoundingBox]);
-
-  const deleteBoundingBox = useCallback((bboxId: string) => {
-    setAnnotations(prev => 
-      prev.map(annotation => ({
-        ...annotation,
-        bounding_boxes: annotation.bounding_boxes.filter(bbox => bbox.id !== bboxId)
-      })).filter(annotation => annotation.bounding_boxes.length > 0)
-    );
-
-    if (selectedBoundingBox?.id === bboxId) {
-      setSelectedBoundingBox(null);
-    }
-  }, [selectedBoundingBox]);
-
-  const moveBoundingBox = useCallback((bboxId: string, deltaX: number, deltaY: number, containerRect: DOMRect, imageScale: number) => {
-    const relativeDeltaX = deltaX / (containerRect.width * imageScale);
-    const relativeDeltaY = deltaY / (containerRect.height * imageScale);
-
-    setAnnotations(prev => prev.map(annotation => ({
-      ...annotation,
-      bounding_boxes: annotation.bounding_boxes.map(bbox => 
-        bbox.id === bboxId 
-          ? {
-              ...bbox,
-              x: Math.max(0, Math.min(1 - bbox.width, bbox.x + relativeDeltaX)),
-              y: Math.max(0, Math.min(1 - bbox.height, bbox.y + relativeDeltaY)),
-            }
-          : bbox
-      )
-    })));
-  }, []);
-
-  const resizeBoundingBox = useCallback((bboxId: string, handle: string, deltaX: number, deltaY: number, containerRect: DOMRect, imageScale: number) => {
-    const relativeDeltaX = deltaX / (containerRect.width * imageScale);
-    const relativeDeltaY = deltaY / (containerRect.height * imageScale);
-
-    setAnnotations(prev => prev.map(annotation => ({
-      ...annotation,
-      bounding_boxes: annotation.bounding_boxes.map(bbox => {
-        if (bbox.id !== bboxId) return bbox;
-
-        let newX = bbox.x;
-        let newY = bbox.y;
-        let newWidth = bbox.width;
-        let newHeight = bbox.height;
-
-        switch (handle) {
-          case 'nw':
-            newX = Math.max(0, bbox.x + relativeDeltaX);
-            newY = Math.max(0, bbox.y + relativeDeltaY);
-            newWidth = Math.max(0.01, bbox.width - relativeDeltaX);
-            newHeight = Math.max(0.01, bbox.height - relativeDeltaY);
-            break;
-          case 'ne':
-            newY = Math.max(0, bbox.y + relativeDeltaY);
-            newWidth = Math.max(0.01, bbox.width + relativeDeltaX);
-            newHeight = Math.max(0.01, bbox.height - relativeDeltaY);
-            break;
-          case 'sw':
-            newX = Math.max(0, bbox.x + relativeDeltaX);
-            newWidth = Math.max(0.01, bbox.width - relativeDeltaX);
-            newHeight = Math.max(0.01, bbox.height + relativeDeltaY);
-            break;
-          case 'se':
-            newWidth = Math.max(0.01, bbox.width + relativeDeltaX);
-            newHeight = Math.max(0.01, bbox.height + relativeDeltaY);
-            break;
-          case 'n':
-            newY = Math.max(0, bbox.y + relativeDeltaY);
-            newHeight = Math.max(0.01, bbox.height - relativeDeltaY);
-            break;
-          case 's':
-            newHeight = Math.max(0.01, bbox.height + relativeDeltaY);
-            break;
-          case 'w':
-            newX = Math.max(0, bbox.x + relativeDeltaX);
-            newWidth = Math.max(0.01, bbox.width - relativeDeltaX);
-            break;
-          case 'e':
-            newWidth = Math.max(0.01, bbox.width + relativeDeltaX);
-            break;
-        }
-
-        return {
-          ...bbox,
-          x: newX,
-          y: newY,
-          width: newWidth,
-          height: newHeight,
-        };
-      })
-    })));
-  }, []);
-
-  const loadAnnotationsForFile = useCallback(async (fileId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/routes/annotations/file/${fileId}`);
-      if (response.ok) {
-        const annotations = await response.json();
-        setAnnotations(annotations);
-        console.log(annotations);
-    } 
-    } catch (error) {
-      console.error('Error loading annotations:', error);
-    }
-  }, []);
+      const boundingBoxData = {
+        x: currentBoundingBox.x,
+        y: currentBoundingBox.y,
+        width: currentBoundingBox.width,
+        height: currentBoundingBox.height,
+        label: currentBoundingBox.label || 'object',
+        confidence: 1.0
+      };
 
-  const saveAnnotations = useCallback(async (fileId: string, taskId?: string) => {
-    try {
-      const annotation = annotations.find(ann => ann.file_id === fileId);
-      
-      if (!annotation) return;
+      const annotationData = {
+        file_id: fileId,
+        task_id: taskId || 'temp',
+        bounding_boxes: [boundingBoxData]
+      };
+
+      console.log('Saving annotation:', annotationData);
 
       const response = await fetch('http://localhost:8000/api/routes/annotations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          file_id: fileId,
-          task_id: taskId,
-          bounding_boxes: annotation.bounding_boxes.map(bbox => ({
-            x: bbox.x,
-            y: bbox.y,
-            width: bbox.width,
-            height: bbox.height,
-            label: bbox.label,
-            confidence: 1.0,
-          })),
-        }),
+        body: JSON.stringify(annotationData),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save annotations');
+        const errorText = await response.text();
+        throw new Error(`Failed to save annotation: ${errorText}`);
       }
 
-      return await response.json();
+      const savedAnnotation = await response.json();
+      console.log('Annotation saved:', savedAnnotation);
+
+      // Перезагружаем аннотации для файла
+      await loadAnnotationsForFile(fileId);
+      
     } catch (error) {
-      console.error('Error saving annotations:', error);
-      throw error;
+      console.error('Error finishing drawing:', error);
+      alert('Ошибка при сохранении аннотации: ' + error);
+    } finally {
+      setIsDrawing(false);
+      setCurrentBoundingBox(null);
     }
-  }, [annotations]);
+  }, [currentBoundingBox, loadAnnotationsForFile]);
+
+  const selectBoundingBox = useCallback((bbox: BoundingBox | null) => {
+    setAnnotations(prev => prev.map(ann => ({
+      ...ann,
+      bounding_boxes: ann.bounding_boxes.map(b => ({
+        ...b,
+        isSelected: b.id === bbox?.id
+      }))
+    })));
+    
+    setSelectedBoundingBox(bbox);
+  }, []);
+
+  const updateBoundingBox = useCallback(async (bboxId: string, updates: Partial<BoundingBox>) => {
+    try {
+      if (updates.label) {
+        const response = await fetch(`http://localhost:8000/api/routes/annotations/bbox/${bboxId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ label: updates.label }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update bounding box');
+        }
+      }
+
+      setAnnotations(prev => prev.map(ann => ({
+        ...ann,
+        bounding_boxes: ann.bounding_boxes.map(b => 
+          b.id === bboxId ? { ...b, ...updates } : b
+        )
+      })));
+
+      if (selectedBoundingBox?.id === bboxId) {
+        setSelectedBoundingBox(prev => prev ? { ...prev, ...updates } : null);
+      }
+    } catch (error) {
+      console.error('Error updating bounding box:', error);
+    }
+  }, [selectedBoundingBox]);
+
+  const deleteBoundingBox = useCallback(async (bboxId: string) => {
+    try {
+      // Находим annotationId для этого bounding box
+      const annotationId = findAnnotationIdByBboxId(bboxId);
+      
+      if (!annotationId) {
+        throw new Error('Annotation not found for this bounding box');
+      }
+
+      const response = await fetch(`http://localhost:8000/api/routes/annotations/${annotationId}/bbox/${bboxId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete bounding box');
+      }
+
+      // Обновляем локальное состояние
+      setAnnotations(prev => 
+        prev.map(ann => ({
+          ...ann,
+          bounding_boxes: ann.bounding_boxes.filter(b => b.id !== bboxId)
+        })).filter(ann => ann.bounding_boxes.length > 0)
+      );
+
+      if (selectedBoundingBox?.id === bboxId) {
+        setSelectedBoundingBox(null);
+      }
+    } catch (error) {
+      console.error('Error deleting bounding box:', error);
+    }
+  }, [findAnnotationIdByBboxId, selectedBoundingBox]);
+
+  const moveBoundingBox = useCallback((bboxId: string, deltaX: number, deltaY: number, rect: DOMRect, scale: number) => {
+    const deltaXNormalized = deltaX / (rect.width * scale);
+    const deltaYNormalized = deltaY / (rect.height * scale);
+
+    setAnnotations(prev => prev.map(ann => ({
+      ...ann,
+      bounding_boxes: ann.bounding_boxes.map(b => 
+        b.id === bboxId ? {
+          ...b,
+          x: Math.max(0, Math.min(1 - b.width, b.x + deltaXNormalized)),
+          y: Math.max(0, Math.min(1 - b.height, b.y + deltaYNormalized))
+        } : b
+      )
+    })));
+  }, []);
+
+  const resizeBoundingBox = useCallback((bboxId: string, handle: string, deltaX: number, deltaY: number, rect: DOMRect, scale: number) => {
+    const deltaXNormalized = deltaX / (rect.width * scale);
+    const deltaYNormalized = deltaY / (rect.height * scale);
+
+    setAnnotations(prev => prev.map(ann => ({
+      ...ann,
+      bounding_boxes: ann.bounding_boxes.map(b => {
+        if (b.id !== bboxId) return b;
+
+        let { x, y, width, height } = b;
+
+        switch (handle) {
+          case 'e':
+            width = Math.max(0.01, width + deltaXNormalized);
+            break;
+          case 'w':
+            x = Math.max(0, x + deltaXNormalized);
+            width = Math.max(0.01, width - deltaXNormalized);
+            break;
+          case 'n':
+            y = Math.max(0, y + deltaYNormalized);
+            height = Math.max(0.01, height - deltaYNormalized);
+            break;
+          case 's':
+            height = Math.max(0.01, height + deltaYNormalized);
+            break;
+          case 'ne':
+            y = Math.max(0, y + deltaYNormalized);
+            height = Math.max(0.01, height - deltaYNormalized);
+            width = Math.max(0.01, width + deltaXNormalized);
+            break;
+          case 'nw':
+            x = Math.max(0, x + deltaXNormalized);
+            y = Math.max(0, y + deltaYNormalized);
+            width = Math.max(0.01, width - deltaXNormalized);
+            height = Math.max(0.01, height - deltaYNormalized);
+            break;
+          case 'se':
+            width = Math.max(0.01, width + deltaXNormalized);
+            height = Math.max(0.01, height + deltaYNormalized);
+            break;
+          case 'sw':
+            x = Math.max(0, x + deltaXNormalized);
+            width = Math.max(0.01, width - deltaXNormalized);
+            height = Math.max(0.01, height + deltaYNormalized);
+            break;
+        }
+
+        return { ...b, x, y, width, height };
+      })
+    })));
+  }, []);
+
+  const saveAnnotations = useCallback(async (fileId: string, taskId?: string) => {
+    console.log('Save annotations called for file:', fileId);
+    // В текущей реализации аннотации сохраняются сразу при создании/изменении
+    // Эта функция может использоваться для дополнительных операций если нужно
+  }, []);
 
   return {
     annotations,
@@ -287,4 +317,4 @@ export const useAnnotations = () => {
     loadAnnotationsForFile,
     saveAnnotations,
   };
-};
+}
