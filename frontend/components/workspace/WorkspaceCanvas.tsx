@@ -22,6 +22,8 @@ interface WorkspaceCanvasProps {
 type InteractionMode = 'idle' | 'drawing' | 'moving_bbox' | 'resizing_bbox' | 'panning';
 type ResizeHandle = 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'w' | 'e';
 
+const clamp = (val: number, min: number, max: number) => Math.min(Math.max(val, min), max);
+
 export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCanvasProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
@@ -30,8 +32,8 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
   const [position, setPosition] = useState({ x: 0, y: 0 });
   
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('idle');
-  const [startPoint, setStartPoint] = useState<{ x: number, y: number }>({ x: 0, y: 0 }); // Координаты мыши при нажатии
-  const [initialBBox, setInitialBBox] = useState<BoundingBox | null>(null); // Копия бокса до начала перетаскивания
+  const [startPoint, setStartPoint] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
+  const [initialBBox, setInitialBBox] = useState<BoundingBox | null>(null);
   const [activeHandle, setActiveHandle] = useState<ResizeHandle | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -50,7 +52,6 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     selectedBoundingBox
   } = useAnnotations();
 
-  // Загрузка изображения
   useEffect(() => {
     if (!currentFile) {
       setImageUrl(null);
@@ -83,7 +84,6 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     return () => { if (imageUrl) URL.revokeObjectURL(imageUrl); };
   }, [currentFile]);
 
-  // Загрузка аннотаций
   useEffect(() => {
     if (currentFile?.id) {
       loadAnnotationsForFile(currentFile.id);
@@ -91,31 +91,23 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
   }, [currentFile?.id, loadAnnotationsForFile]);
 
 
-  // --- Helper Functions ---
-
-  // Screen (Mouse) -> Normalized Image Coordinates (0..1)
   const getNormalizedPoint = (clientX: number, clientY: number) => {
     if (!containerRef.current || imgDimensions.width === 0) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
     const mouseX = clientX - rect.left;
     const mouseY = clientY - rect.top;
+    
+    if (scale === 0 || isNaN(scale)) return { x: 0, y: 0 };
+
     const imageX = (mouseX - position.x) / scale;
     const imageY = (mouseY - position.y) / scale;
+    
     return {
       x: imageX / imgDimensions.width,
       y: imageY / imgDimensions.height
     };
   };
 
-  // Normalized Image Coordinates -> Screen Coordinates (px relative to container)
-  const toScreen = (normX: number, normY: number) => {
-    return {
-      x: normX * imgDimensions.width * scale + position.x,
-      y: normY * imgDimensions.height * scale + position.y
-    };
-  };
-
-  // Проверка попадания в тело бокса
   const isPointInBBox = (normPoint: {x: number, y: number}, bbox: BoundingBox) => {
     return (
       normPoint.x >= bbox.x && normPoint.x <= bbox.x + bbox.width &&
@@ -123,11 +115,9 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     );
   };
 
-  // Проверка попадания в handle (возвращает тип handle или null)
   const getHandleAtPoint = (clientX: number, clientY: number, bbox: BoundingBox): ResizeHandle | null => {
     if (!bbox.isSelected) return null;
     
-    // Convert logic to screen space for constant handle size (e.g. 8px)
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return null;
     
@@ -139,8 +129,7 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     const screenW = bbox.width * imgDimensions.width * scale;
     const screenH = bbox.height * imgDimensions.height * scale;
     
-    const handleSize = 8; // радиус зоны клика
-    
+    const handleSize = 8;
     const handles: Record<ResizeHandle, {x: number, y: number}> = {
       nw: { x: screenX, y: screenY },
       ne: { x: screenX + screenW, y: screenY },
@@ -160,41 +149,32 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     return null;
   };
 
-
-  // --- Mouse Handlers ---
-
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!containerRef.current) return;
-    e.preventDefault(); // Prevent text selection etc.
+    e.preventDefault();
 
     const normPoint = getNormalizedPoint(e.clientX, e.clientY);
-    const screenPoint = { x: e.clientX, y: e.clientY };
-
-    // 1. PANNING (Space bar or Middle Click or Move Tool)
+    
     if (activeTool === 'move' || e.button === 1) {
       setInteractionMode('panning');
       setStartPoint({ x: e.clientX - position.x, y: e.clientY - position.y });
       return;
     }
 
-    // 2. CHECK RESIZE HANDLES (if selection exists)
     if (selectedBoundingBox && activeTool === 'select') {
       const handle = getHandleAtPoint(e.clientX, e.clientY, selectedBoundingBox);
       if (handle) {
         setInteractionMode('resizing_bbox');
         setActiveHandle(handle);
         setInitialBBox({ ...selectedBoundingBox });
-        setStartPoint(normPoint); // сохраняем нормализованную точку старта
+        setStartPoint(normPoint);
         return;
       }
     }
 
-    // 3. CHECK BBOX BODY (Move or Select)
     if ((activeTool === 'select' || activeTool === 'erase') && e.button === 0) {
       const currentAnns = annotations.find(a => a.file_id === currentFile?.id);
       const bboxes = currentAnns?.bounding_boxes || [];
-      
-      // Ищем клик по боксу (reverse order = top most first)
       const clickedBox = [...bboxes].reverse().find(b => isPointInBBox(normPoint, b));
 
       if (clickedBox) {
@@ -202,20 +182,16 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
           deleteBoundingBox(clickedBox.id);
           return;
         }
-
-        // Select tool logic
         selectBoundingBox(clickedBox);
         setInteractionMode('moving_bbox');
         setInitialBBox({ ...clickedBox });
         setStartPoint(normPoint);
         return;
       } else {
-        // Clicked empty space -> deselect
         selectBoundingBox(null);
       }
     }
 
-    // 4. DRAWING
     if (activeTool === 'rectangle' && e.button === 0) {
       setInteractionMode('drawing');
       setIsDrawing(true);
@@ -233,9 +209,8 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    const normPoint = getNormalizedPoint(e.clientX, e.clientY);
+    let normPoint = getNormalizedPoint(e.clientX, e.clientY);
 
-    // --- LOGIC: PANNING ---
     if (interactionMode === 'panning') {
       setPosition({
         x: e.clientX - startPoint.x,
@@ -244,8 +219,12 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
       return;
     }
 
-    // --- LOGIC: DRAWING ---
     if (interactionMode === 'drawing' && isDrawing) {
+      normPoint = {
+        x: clamp(normPoint.x, 0, 1),
+        y: clamp(normPoint.y, 0, 1)
+      };
+      
       const width = normPoint.x - startPoint.x;
       const height = normPoint.y - startPoint.y;
       
@@ -259,31 +238,34 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
       return;
     }
 
-    // --- LOGIC: MOVING BBOX ---
     if (interactionMode === 'moving_bbox' && initialBBox && selectedBoundingBox) {
       const deltaX = normPoint.x - startPoint.x;
       const deltaY = normPoint.y - startPoint.y;
+      let newX = initialBBox.x + deltaX;
+      let newY = initialBBox.y + deltaY;
 
-      const newX = initialBBox.x + deltaX;
-      const newY = initialBBox.y + deltaY;
+      newX = clamp(newX, 0, 1 - initialBBox.width);
+      newY = clamp(newY, 0, 1 - initialBBox.height);
 
-      // Обновляем контекст локально (saveToBackend = false)
-      updateBoundingBox(selectedBoundingBox.id, {
-        x: newX,
-        y: newY
-      }, false);
+      if (!isNaN(newX) && !isNaN(newY)) {
+          updateBoundingBox(selectedBoundingBox.id, {
+            x: newX,
+            y: newY
+          }, false);
+      }
       return;
     }
 
-    // --- LOGIC: RESIZING BBOX ---
     if (interactionMode === 'resizing_bbox' && initialBBox && selectedBoundingBox && activeHandle) {
-      const deltaX = normPoint.x - startPoint.x;
-      const deltaY = normPoint.y - startPoint.y;
+      const safeMouseX = clamp(normPoint.x, 0, 1);
+      const safeMouseY = clamp(normPoint.y, 0, 1);
+
+      const deltaX = safeMouseX - startPoint.x;
+      const deltaY = safeMouseY - startPoint.y;
 
       let { x, y, width, height } = initialBBox;
+      const minSize = 0.005;
 
-      // Logic for each handle
-      // Note: We clamp dimensions to be minimal e.g. 0.001
       switch (activeHandle) {
         case 'e':
           width += deltaX;
@@ -321,7 +303,6 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
           break;
       }
 
-      // Normalization (handle negative width/height while dragging)
       if (width < 0) {
         x = x + width;
         width = Math.abs(width);
@@ -330,14 +311,14 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
         y = y + height;
         height = Math.abs(height);
       }
-
-      updateBoundingBox(selectedBoundingBox.id, { x, y, width, height }, false);
+      
+      if (!isNaN(x) && !isNaN(y) && !isNaN(width) && !isNaN(height)) {
+          updateBoundingBox(selectedBoundingBox.id, { x, y, width, height }, false);
+      }
       return;
     }
 
-    // --- LOGIC: CURSOR HOVER EFFECTS ---
     if (interactionMode === 'idle' && activeTool === 'select' && containerRef.current) {
-      // 1. Check handles
       if (selectedBoundingBox) {
         const handle = getHandleAtPoint(e.clientX, e.clientY, selectedBoundingBox);
         if (handle) {
@@ -349,20 +330,15 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
           return;
         }
       }
-      
-      // 2. Check body
       const currentAnns = annotations.find(a => a.file_id === currentFile?.id);
       const bboxes = currentAnns?.bounding_boxes || [];
       const isOver = bboxes.some(b => isPointInBBox(normPoint, b));
-      
       containerRef.current.style.cursor = isOver ? 'move' : 'default';
     }
   };
 
   const handleMouseUp = () => {
-    // Если мы что-то двигали или меняли размер - сохраняем в БД финальное состояние
     if ((interactionMode === 'moving_bbox' || interactionMode === 'resizing_bbox') && selectedBoundingBox) {
-       // Trigger API Save via Context with the current state (saveToBackend = true)
        updateBoundingBox(selectedBoundingBox.id, {}, true);
     }
 
@@ -370,11 +346,9 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
       finishDrawing(currentFile.id, taskId || undefined);
     }
 
-    // Reset state
     setInteractionMode('idle');
     setInitialBBox(null);
     setActiveHandle(null);
-    setIsDragging(false); // legacy flag
   };
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -397,15 +371,11 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     setPosition(newPos);
   };
 
-  // --- Rendering ---
-  
   const renderResizeHandles = (bbox: BoundingBox) => {
     if (!bbox.isSelected) return null;
-    
     const handles: ResizeHandle[] = ['nw', 'ne', 'sw', 'se', 'n', 's', 'w', 'e'];
     
     return handles.map(handle => {
-      // Logic positions in % relative to the box
       const style: React.CSSProperties = {
         position: 'absolute',
         width: '8px',
@@ -414,16 +384,16 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
         border: `1px solid ${bbox.color}`,
         borderRadius: '50%',
         zIndex: 20,
-        pointerEvents: 'none', // Мы обрабатываем клики через getHandleAtPoint, так что CSS events не нужны для логики
+        pointerEvents: 'none',
+        transform: 'translate(-50%, -50%)'
       };
 
-      // Расстановка хендлов
-      if (handle.includes('n')) style.top = '-4px';
-      if (handle.includes('s')) style.bottom = '-4px';
-      if (handle.includes('w')) style.left = '-4px';
-      if (handle.includes('e')) style.right = '-4px';
-      if (handle === 'n' || handle === 's') style.left = 'calc(50% - 4px)';
-      if (handle === 'e' || handle === 'w') style.top = 'calc(50% - 4px)';
+      if (handle.includes('n')) style.top = '0%';
+      if (handle.includes('s')) style.top = '100%';
+      if (handle.includes('w')) style.left = '0%';
+      if (handle.includes('e')) style.left = '100%';
+      if (handle === 'n' || handle === 's') style.left = '50%';
+      if (handle === 'e' || handle === 'w') style.top = '50%';
 
       return <div key={handle} style={style} />;
     });
@@ -431,7 +401,7 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
 
   const renderBoundingBox = (bbox: BoundingBox | Partial<BoundingBox>, isTemp: boolean = false) => {
     if (bbox.x === undefined || bbox.y === undefined || !bbox.width || !bbox.height) return null;
-
+    if (isNaN(bbox.x) || isNaN(bbox.y)) return null; 
     const style: React.CSSProperties = {
       left: `${bbox.x * 100}%`,
       top: `${bbox.y * 100}%`,
@@ -449,9 +419,7 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
         style={style}
         className="group"
       >
-        {!isTemp && !isDrawing && (
-           renderResizeHandles(bbox as BoundingBox)
-        )}
+        {!isTemp && !isDrawing && renderResizeHandles(bbox as BoundingBox)}
         {!isTemp && (
           <div className="absolute -top-6 left-0 bg-blue-500 text-white text-xs px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
             {(bbox as BoundingBox).label}
