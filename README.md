@@ -1,5 +1,6 @@
 # Dataset Markup Web Service
 This repository contains the implementation of a web service designed for semi-automatic annotation of visual data. It provides tools to streamline and accelerate the labeling process for images and videos by combining automated methods with user input.
+<img width="1912" height="1001" alt="image" src="https://github.com/user-attachments/assets/a81c26ca-65e0-443b-a422-6187c589e878" />
 
 # Notice
 App is currently in development mode, but you can try it now! See https://github.com/users/abushkevicaleksej/projects/1/views/1
