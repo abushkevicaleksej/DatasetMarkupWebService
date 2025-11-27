@@ -44,8 +44,8 @@ export function Workspace() {
   
   const [searchParams] = useSearchParams();
   const taskId = searchParams.get('taskId');
+  console.log(taskId)
 
-  // Функция для загрузки файлов, привязанных к задаче
   const fetchTaskFiles = async (taskId: string) => {
     try {
       setLoading(true);
@@ -77,7 +77,6 @@ export function Workspace() {
     }
   };
 
-  // Функция для загрузки всех файлов (не привязанных к задаче)
   const fetchAllFiles = async () => {
     try {
       setLoading(true);
@@ -109,7 +108,6 @@ export function Workspace() {
     }
   };
 
-  // Функция для загрузки информации о задаче
   const fetchTaskInfo = async (taskId: string) => {
     try {
       const response = await fetch(`http://localhost:8000/api/routes/api/tasks/${taskId}`);
@@ -125,7 +123,6 @@ export function Workspace() {
     }
   };
 
-  // Функция для сохранения задачи
   const handleSaveTask = async (taskData: TaskCreateRequest) => {
     try {
       setSavingTask(true);
@@ -159,7 +156,6 @@ export function Workspace() {
     }
   };
 
-  // Функция для изменения активного файла
   const handleFileSelect = (fileId: string) => {
     setCurrentFileId(fileId);
     setFiles(prevFiles => 
@@ -182,7 +178,6 @@ export function Workspace() {
     setShowSaveForm(true);
   };
 
-  // Функция для обновления списка файлов
   const handleRefreshFiles = () => {
     if (taskId) {
       fetchTaskFiles(taskId);
@@ -191,14 +186,11 @@ export function Workspace() {
     }
   };
 
-  // Загрузка данных в зависимости от наличия taskId
   useEffect(() => {
     if (taskId) {
-      // Режим просмотра задачи: загружаем файлы задачи и информацию о ней
       fetchTaskFiles(taskId);
       fetchTaskInfo(taskId);
     } else {
-      // Режим создания новой задачи: загружаем все доступные файлы
       fetchAllFiles();
       setCurrentTask(null);
     }
@@ -209,7 +201,6 @@ export function Workspace() {
 
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col">
-      {/* Заголовок с информацией о задаче (только в режиме просмотра) */}
       {currentTask && (
         <div className="bg-primary/10 border-b px-4 py-2">
           <div className="flex items-center justify-between">
@@ -240,10 +231,11 @@ export function Workspace() {
         <WorkspaceCanvas 
           currentFile={currentFile} 
           activeTool={activeTool}
+          taskId={taskId}
         />
         
         <div className="w-80 flex flex-col gap-4">
-          <AnnotationList taskId={taskId} />
+          <AnnotationList taskId={taskId} currentFileId={currentFile?.id} />
           <FileList 
             files={files}
             currentFileId={currentFileId}
@@ -261,7 +253,6 @@ export function Workspace() {
         onFileChange={handleFileChange}
       />
 
-      {/* Форма сохранения задачи (только в режиме создания) */}
       {!taskId && (
         <SaveTaskForm
           isOpen={showSaveForm}

@@ -52,4 +52,4 @@ In the other terminal:
 cd ./backend/
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
-Then go to **localhost:5147**. Also see docs with FastAPI Swagger UI on **localhost:8000/docs**
+Then go to **localhost:5173**. Also see docs with FastAPI Swagger UI on **localhost:8000/docs**
