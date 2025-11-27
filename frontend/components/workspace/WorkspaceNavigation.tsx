@@ -77,7 +77,6 @@ export function WorkspaceNavigation({ files, currentFileId, onFileChange }: Work
           <span>{totalFiles}</span>
         </div>
 
-        {/* Дополнительная информация о текущем файле */}
         <div className="flex items-center gap-2 mx-4 min-w-0 flex-1 max-w-md">
           <span className="text-sm truncate" title={currentFile.name}>
             {currentFile.name}

@@ -5,8 +5,6 @@ import {
   Square,
   Eraser,
   Move,
-  ZoomIn,
-  ZoomOut,
   Save,
   Eye,
 } from 'lucide-react';

@@ -68,8 +68,8 @@ export const useAnnotations = () => {
     };
 
     setAnnotations(prev => {
+      console.log("ok")
       const existingAnnotation = prev.find(ann => ann.file_id === fileId);
-      
       if (existingAnnotation) {
         return prev.map(ann => 
           ann.file_id === fileId 
@@ -228,7 +228,8 @@ export const useAnnotations = () => {
       if (response.ok) {
         const annotations = await response.json();
         setAnnotations(annotations);
-      }
+        console.log(annotations);
+    } 
     } catch (error) {
       console.error('Error loading annotations:', error);
     }
