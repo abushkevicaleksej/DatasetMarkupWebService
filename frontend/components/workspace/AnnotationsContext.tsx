@@ -13,7 +13,7 @@ interface AnnotationsContextType {
   
   loadAnnotationsForFile: (fileId: string) => Promise<void>;
   finishDrawing: (fileId: string, taskId?: string) => Promise<void>;
-  updateBoundingBox: (bboxId: string, updates: Partial<BoundingBox>) => Promise<void>;
+  updateBoundingBox: (bboxId: string, updates: Partial<BoundingBox>, saveToBackend?: boolean) => Promise<void>;
   deleteBoundingBox: (bboxId: string) => Promise<void>;
   selectBoundingBox: (bbox: BoundingBox | null) => void;
 }
@@ -99,15 +99,11 @@ export function AnnotationsProvider({ children }: { children: ReactNode }) {
 
       const response = await fetch('http://localhost:8000/api/routes/annotations', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(annotationData),
       });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
+      if (!response.ok) throw new Error(await response.text());
 
       const savedAnnotation = await response.json();
 
@@ -152,16 +148,8 @@ export function AnnotationsProvider({ children }: { children: ReactNode }) {
     }
   }, [currentBoundingBox]);
 
-  const updateBoundingBox = useCallback(async (bboxId: string, updates: Partial<BoundingBox>) => {
+  const updateBoundingBox = useCallback(async (bboxId: string, updates: Partial<BoundingBox>, saveToBackend: boolean = true) => {
     try {
-      if (updates.label) {
-        await fetch(`http://localhost:8000/api/routes/annotations/bbox/${bboxId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ label: updates.label }),
-        });
-      }
-
       setAnnotations(prev => prev.map(ann => ({
         ...ann,
         bounding_boxes: ann.bounding_boxes.map(b => 
@@ -172,10 +160,32 @@ export function AnnotationsProvider({ children }: { children: ReactNode }) {
       if (selectedBoundingBox?.id === bboxId) {
         setSelectedBoundingBox(prev => prev ? { ...prev, ...updates } : null);
       }
+
+      if (saveToBackend) {
+        let fullBbox: BoundingBox | undefined;
+        for (const ann of annotations) {
+            fullBbox = ann.bounding_boxes.find(b => b.id === bboxId);
+            if (fullBbox) break;
+        }
+        
+        const dataToSend = { ...fullBbox, ...updates };
+
+        await fetch(`http://localhost:8000/api/routes/annotations/bbox/${bboxId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            x: dataToSend.x,
+            y: dataToSend.y,
+            width: dataToSend.width,
+            height: dataToSend.height,
+            label: dataToSend.label
+          }),
+        });
+      }
     } catch (error) {
       console.error('Error updating bbox:', error);
     }
-  }, [selectedBoundingBox]);
+  }, [selectedBoundingBox, annotations]);
 
   const deleteBoundingBox = useCallback(async (bboxId: string) => {
     try {

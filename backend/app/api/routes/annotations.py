@@ -1,6 +1,6 @@
 from uuid import UUID
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, HTTPException, Depends
@@ -19,6 +19,13 @@ class BoundingBoxCreate(BaseModel):
     label: str = "object"
     confidence: float = 1.0
 
+class BoundingBoxUpdate(BaseModel):
+    x: Optional[float] = None
+    y: Optional[float] = None
+    width: Optional[float] = None
+    height: Optional[float] = None
+    label: Optional[str] = None
+
 class AnnotationCreateRequest(BaseModel):
     file_id: str
     task_id: str
@@ -26,7 +33,6 @@ class AnnotationCreateRequest(BaseModel):
 
 @router.post("/annotations")
 async def create_annotation(annotation_data: AnnotationCreateRequest, db: Session = Depends(get_db)):
-
     from app.infrastructure.repositories.annotation_repository import AnnotationRepository
     
     try:
@@ -95,21 +101,26 @@ async def get_annotations_for_file(file_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.put("/annotations/bbox/{bbox_id}")
-async def update_bounding_box_label(bbox_id: str, update_data: dict, db: Session = Depends(get_db)):
+async def update_bounding_box(bbox_id: str, update_data: BoundingBoxUpdate, db: Session = Depends(get_db)):
     from app.infrastructure.repositories.annotation_repository import AnnotationRepository
     
     try:
         annotation_repository = AnnotationRepository(db)
         
-        success = annotation_repository.update_bounding_box_label(
+        updates = update_data.dict(exclude_unset=True)
+        
+        if not updates:
+            return {"message": "No data provided for update"}
+
+        success = annotation_repository.update_bounding_box(
             bbox_id=bbox_id, 
-            new_label=update_data.get("label")
+            update_data=updates
         )
         
         if not success:
             raise HTTPException(status_code=404, detail="Bounding box not found")
             
-        return {"message": "Bounding box label updated successfully"}
+        return {"message": "Bounding box updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
