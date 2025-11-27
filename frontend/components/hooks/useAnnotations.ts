@@ -1,4 +1,3 @@
-// hooks/useAnnotations.ts
 import { useState, useCallback } from 'react';
 import { BoundingBox, Annotation } from '../types/annotations';
 
@@ -8,7 +7,6 @@ export function useAnnotations() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentBoundingBox, setCurrentBoundingBox] = useState<Partial<BoundingBox> | null>(null);
 
-  // Функция для поиска annotationId по bboxId
   const findAnnotationIdByBboxId = useCallback((bboxId: string): string | null => {
     for (const annotation of annotations) {
       for (const bbox of annotation.bounding_boxes) {
@@ -20,12 +18,15 @@ export function useAnnotations() {
     return null;
   }, [annotations]);
 
+  const findAnnotationByFileId = useCallback((fileId: string): Annotation | null => {
+    return annotations.find(ann => ann.file_id === fileId) || null;
+  }, [annotations]);
+
   const loadAnnotationsForFile = useCallback(async (fileId: string) => {
     try {
       const response = await fetch(`http://localhost:8000/api/routes/annotations/file/${fileId}`);
       
       if (!response.ok) {
-        // Если файл не имеет аннотаций, это нормально - возвращаем пустой массив
         if (response.status === 404) {
           setAnnotations([]);
           return;
@@ -48,7 +49,7 @@ export function useAnnotations() {
           height: bbox.height,
           label: bbox.label,
           confidence: bbox.confidence,
-          color: '#3B82F6', // Добавляем цвет по умолчанию
+          color: '#3B82F6',
           isSelected: false
         })),
         created_at: item.created_at
@@ -61,7 +62,6 @@ export function useAnnotations() {
     }
   }, []);
 
-  // Исправленная функция startDrawing
   const startDrawing = useCallback((clientX: number, clientY: number, rect: DOMRect, scale: number, position: { x: number, y: number }) => {
     setIsDrawing(true);
     const x = (clientX - rect.left - position.x) / (rect.width * scale);
@@ -78,7 +78,6 @@ export function useAnnotations() {
     });
   }, []);
 
-  // Исправленная функция updateDrawing
   const updateDrawing = useCallback((clientX: number, clientY: number, rect: DOMRect, scale: number, position: { x: number, y: number }) => {
     if (!currentBoundingBox || currentBoundingBox.x === undefined || currentBoundingBox.y === undefined) return;
     
@@ -116,7 +115,7 @@ export function useAnnotations() {
 
       const annotationData = {
         file_id: fileId,
-        task_id: taskId || 'temp',
+        task_id: taskId || null, 
         bounding_boxes: [boundingBoxData]
       };
 
@@ -138,9 +137,40 @@ export function useAnnotations() {
       const savedAnnotation = await response.json();
       console.log('Annotation saved:', savedAnnotation);
 
-      // Перезагружаем аннотации для файла
-      await loadAnnotationsForFile(fileId);
+      const newBoundingBox: BoundingBox = {
+        id: savedAnnotation.bounding_boxes[0]?.id || Date.now().toString(),
+        x: currentBoundingBox.x,
+        y: currentBoundingBox.y,
+        width: currentBoundingBox.width,
+        height: currentBoundingBox.height,
+        label: currentBoundingBox.label || 'object',
+        confidence: 1.0,
+        color: '#3B82F6',
+        isSelected: false
+      };
+
+      setAnnotations(prev => {
+      const existingAnnotationIndex = prev.findIndex(ann => ann.file_id === fileId);
       
+      if (existingAnnotationIndex >= 0) {
+        const updated = [...prev];
+        updated[existingAnnotationIndex] = {
+          ...updated[existingAnnotationIndex],
+          bounding_boxes: [...updated[existingAnnotationIndex].bounding_boxes, newBoundingBox]
+        };
+        return updated;
+      } else {
+        const newAnnotation: Annotation = {
+          id: savedAnnotation.id || Date.now().toString(),
+          file_id: fileId,
+          task_id: taskId || 'temp',
+          bounding_boxes: [newBoundingBox],
+          created_at: new Date().toISOString()
+        };
+        return [...prev, newAnnotation];
+      }
+    });
+
     } catch (error) {
       console.error('Error finishing drawing:', error);
       alert('Ошибка при сохранении аннотации: ' + error);
@@ -195,8 +225,17 @@ export function useAnnotations() {
 
   const deleteBoundingBox = useCallback(async (bboxId: string) => {
     try {
-      // Находим annotationId для этого bounding box
-      const annotationId = findAnnotationIdByBboxId(bboxId);
+      let annotationId: string | null = null;
+      let fileId: string | null = null;
+      
+      for (const annotation of annotations) {
+        const bbox = annotation.bounding_boxes.find(b => b.id === bboxId);
+        if (bbox) {
+          annotationId = annotation.id;
+          fileId = annotation.file_id;
+          break;
+        }
+      }
       
       if (!annotationId) {
         throw new Error('Annotation not found for this bounding box');
@@ -210,21 +249,28 @@ export function useAnnotations() {
         throw new Error('Failed to delete bounding box');
       }
 
-      // Обновляем локальное состояние
       setAnnotations(prev => 
-        prev.map(ann => ({
-          ...ann,
-          bounding_boxes: ann.bounding_boxes.filter(b => b.id !== bboxId)
-        })).filter(ann => ann.bounding_boxes.length > 0)
+        prev.map(ann => 
+          ann.id === annotationId 
+            ? {
+                ...ann,
+                bounding_boxes: ann.bounding_boxes.filter(b => b.id !== bboxId)
+              }
+            : ann
+        ).filter(ann => ann.bounding_boxes.length > 0)
       );
 
       if (selectedBoundingBox?.id === bboxId) {
         setSelectedBoundingBox(null);
       }
+
+      console.log('Bounding box deleted:', bboxId);
+      
     } catch (error) {
       console.error('Error deleting bounding box:', error);
+      alert('Ошибка при удалении аннотации');
     }
-  }, [findAnnotationIdByBboxId, selectedBoundingBox]);
+  }, [annotations, selectedBoundingBox]);
 
   const moveBoundingBox = useCallback((bboxId: string, deltaX: number, deltaY: number, rect: DOMRect, scale: number) => {
     const deltaXNormalized = deltaX / (rect.width * scale);
@@ -297,8 +343,6 @@ export function useAnnotations() {
 
   const saveAnnotations = useCallback(async (fileId: string, taskId?: string) => {
     console.log('Save annotations called for file:', fileId);
-    // В текущей реализации аннотации сохраняются сразу при создании/изменении
-    // Эта функция может использоваться для дополнительных операций если нужно
   }, []);
 
   return {

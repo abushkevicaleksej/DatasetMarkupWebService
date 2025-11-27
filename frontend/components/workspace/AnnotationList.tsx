@@ -25,6 +25,14 @@ export function AnnotationList({ taskId, currentFileId }: AnnotationListProps) {
   const currentAnnotations = getCurrentFileAnnotations();
   const currentBoundingBoxes = currentAnnotations.flatMap(ann => ann.bounding_boxes);
 
+  useEffect(() => {
+    console.log('Annotations updated:', currentBoundingBoxes.length);
+  }, [currentBoundingBoxes]);
+
+  useEffect(() => {
+    console.log('Current file changed:', currentFileId);
+  }, [currentFileId]);
+
   const startEditing = (bbox: BoundingBox) => {
     setEditingBbox(bbox);
     setEditLabel(bbox.label);

@@ -7,8 +7,6 @@ import {
   ZoomOut,
 } from 'lucide-react';
 
-// todo im tired of making this sheet
-
 interface WorkspaceFile {
   id: string;
   name: string;
@@ -418,10 +416,13 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
               />
               
               {boundingBoxes.map(bbox => {
-                const bboxX = bbox.x * (containerRef.current?.offsetWidth || 0) * scale + position.x;
-                const bboxY = bbox.y * (containerRef.current?.offsetHeight || 0) * scale + position.y;
-                const bboxWidth = bbox.width * (containerRef.current?.offsetWidth || 0) * scale;
-                const bboxHeight = bbox.height * (containerRef.current?.offsetHeight || 0) * scale;
+                const containerWidth = containerRef.current?.offsetWidth || 0;
+                const containerHeight = containerRef.current?.offsetHeight || 0;
+                
+                const bboxX = bbox.x * containerWidth * scale + position.x;
+                const bboxY = bbox.y * containerHeight * scale + position.y;
+                const bboxWidth = bbox.width * containerWidth * scale;
+                const bboxHeight = bbox.height * containerHeight * scale;
 
                 return (
                   <div
