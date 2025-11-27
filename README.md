@@ -2,7 +2,7 @@
 This repository contains the implementation of a web service designed for semi-automatic annotation of visual data. It provides tools to streamline and accelerate the labeling process for images and videos by combining automated methods with user input.
 
 # Notice
-App is currently in development mode, but you can try it now!
+App is currently in development mode, but you can try it now! See https://github.com/users/abushkevicaleksej/projects/1/views/1
 
 # Installation
 Firstly, you need to install Node.js for frontend performing. Go to https://nodejs.org/en/download
