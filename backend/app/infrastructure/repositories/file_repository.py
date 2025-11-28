@@ -44,6 +44,20 @@ class FileRepository:
             return True
         return False
     
+    def update_file(self, file_id: str, update_data: dict) -> bool:
+        
+        file = self.db.query(File).filter(File.id == file_id).first()
+        if not file:
+            return False
+        
+        for key, value in update_data.items():
+            if hasattr(file, key):
+                setattr(file, key, value)
+                
+        self.db.commit()
+        self.db.refresh(file)
+        return True
+    
     def to_entity(self, db_file: File) -> FileInfo:
         from app.domain.entities.file_info import FileInfo, MediaType
         
