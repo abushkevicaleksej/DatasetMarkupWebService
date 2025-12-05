@@ -12,6 +12,7 @@ from app.infrastructure.database import get_db
 from app.application.services.yolo_service import yolo_service
 from app.infrastructure.repositories.ml_model_repository import MLModelRepository, PredictionRepository, TrainingSessionRepository
 from app.infrastructure.repositories.file_repository import FileRepository
+from app.infrastructure.repositories.annotation_repository import AnnotationRepository
 
 router = APIRouter()
 
@@ -64,6 +65,7 @@ async def predict(prediction_request: PredictionRequest, db: Session = Depends(g
     model_repo = MLModelRepository(db)
     file_repo = FileRepository(db)
     prediction_repo = PredictionRepository(db)
+    annotation_repo = AnnotationRepository(db)
 
     try:
         file_ids = prediction_request.file_ids[:prediction_request.max_predictions]
@@ -102,6 +104,15 @@ async def predict(prediction_request: PredictionRequest, db: Session = Depends(g
                     })
 
                 prediction_repo.create_bounding_boxes(db_prediction.id, bboxes_data)
+
+                print(prediction_request.task_id)
+
+                if prediction_request.task_id:
+                    annotation_repo.create_annotation(
+                        file_id=file_info.id,
+                        task_id=prediction_request.task_id,
+                        bounding_boxes=bboxes_data
+                    )
 
                 results.append(PredictionResponse(
                     file_id=file_info.id,

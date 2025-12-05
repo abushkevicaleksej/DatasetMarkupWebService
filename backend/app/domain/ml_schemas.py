@@ -47,6 +47,7 @@ class PredictionRequest(BaseModel):
     model_id: str = Field(..., description="Model ID to use for prediction")
     confidence_threshold: float = Field(0.5, description="Confidence threshold")
     max_predictions: int = Field(5, description="Maximum number of images to process")
+    task_id: Optional[str] = Field(None, description="Task ID to save annotations to")
 
 class BoundingBoxPrediction(BaseModel):
     x: float = Field(..., description="Normalized x coordinate")
