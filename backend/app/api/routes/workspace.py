@@ -9,6 +9,10 @@ from fastapi.responses import HTMLResponse, FileResponse
 
 from app.infrastructure.database import get_db
 
+from app.domain.ml_schemas import (
+    PredictionResponse
+)
+
 BASE_DIR = Path(__file__).parent.parent.parent
 
 router = APIRouter()
@@ -58,3 +62,42 @@ async def get_file(file_id: str, db: Session = Depends(get_db)):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error serving file: {str(e)}")
+    
+@router.delete("/files/{file_id}")
+async def delete_file(file_id: str, db: Session = Depends(get_db)):
+    from app.infrastructure.repositories.file_repository import FileRepository
+    
+    try:
+        file_repository = FileRepository(db)
+        success = file_repository.delete(file_id)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="File not found")
+            
+        return {"message": "File deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@router.put("/files/{file_id}")
+async def update_files(file_id: str, update_data: PredictionResponse, db: Session = Depends(get_db)):
+    from app.infrastructure.repositories.file_repository import FileRepository
+    
+    try:
+        file_repository = FileRepository(db)
+        
+        updates = update_data.dict(exclude_unset=True)
+        
+        if not updates:
+            return {"message": "No data provided for update"}
+
+        success = file_repository.update_file(
+            file_id=file_id, 
+            update_data=updates
+        )
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="File not found")
+            
+        return {"message": "File updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

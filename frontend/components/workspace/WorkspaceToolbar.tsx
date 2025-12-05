@@ -7,6 +7,8 @@ import {
   Move,
   Save,
   Eye,
+  BrainIcon,
+  DownloadIcon
 } from 'lucide-react';
 
 type Tool = 'select' | 'rectangle' | 'erase' | 'move';
@@ -48,7 +50,22 @@ export function WorkspaceToolbar({
       ))}
 
       <Separator className="my-2" />
-      
+      <Button 
+          variant="ghost" 
+          size="icon" 
+          title="Использовать модель"
+        >
+          <BrainIcon className="w-5 h-5" />
+      </Button>
+
+      <Button 
+          variant="ghost" 
+          size="icon" 
+          title="Экспорт разметки"
+        >
+          <DownloadIcon className="w-5 h-5" />
+      </Button>
+
       {isTaskView ? (
         <Button 
           variant="ghost" 
@@ -59,6 +76,7 @@ export function WorkspaceToolbar({
           <Eye className="w-5 h-5" />
         </Button>
       ) : (
+        
         <Button 
           variant="ghost" 
           size="icon" 
@@ -68,6 +86,7 @@ export function WorkspaceToolbar({
         >
           <Save className="w-5 h-5" />
         </Button>
+
       )}
     </div>
   );

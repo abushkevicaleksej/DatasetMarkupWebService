@@ -43,7 +43,6 @@ export function Workspace() {
   const [savingTask, setSavingTask] = useState(false);
   const [currentTask, setCurrentTask] = useState<TaskResponse | null>(null);
   
-  // ИЗМЕНЕНИЕ 1: Получаем функцию setSearchParams
   const [searchParams, setSearchParams] = useSearchParams();
   const taskId = searchParams.get('taskId');
 
@@ -109,20 +108,20 @@ export function Workspace() {
     }
   };
 
-  const fetchTaskInfo = async (taskId: string) => {
-    try {
-      const response = await fetch(`http://localhost:8000/api/routes/api/tasks/${taskId}`);
+  // const fetchTaskInfo = async (taskId: string) => {
+  //   try {
+  //     const response = await fetch(`http://localhost:8000/api/routes/api/tasks/${taskId}`);
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+  //     if (!response.ok) {
+  //       throw new Error(`HTTP error! status: ${response.status}`);
+  //     }
       
-      const task: TaskResponse = await response.json();
-      setCurrentTask(task);
-    } catch (err) {
-      console.error('Error fetching task info:', err);
-    }
-  };
+  //     const task: TaskResponse = await response.json();
+  //     setCurrentTask(task);
+  //   } catch (err) {
+  //     console.error('Error fetching task info:', err);
+  //   }
+  // };
 
   const handleSaveTask = async (taskData: TaskCreateRequest) => {
     try {
@@ -147,12 +146,7 @@ export function Workspace() {
       
       setShowSaveForm(false);
       
-      // ИЗМЕНЕНИЕ 2: Обновляем URL без перезагрузки страницы.
-      // Это спровоцирует срабатывание useEffect ниже, который загрузит контекст задачи.
       setSearchParams({ taskId: createdTask.id });
-      
-      // Опционально можно убрать alert, так как интерфейс визуально изменится (появится хедер задачи)
-      // alert(`Задача "${createdTask.name}" успешно создана!`); 
       
     } catch (error) {
       console.error('Error saving task:', error);
@@ -192,11 +186,10 @@ export function Workspace() {
     }
   };
 
-  // Этот эффект сработает автоматически, когда мы вызовем setSearchParams
   useEffect(() => {
     if (taskId) {
       fetchTaskFiles(taskId);
-      fetchTaskInfo(taskId);
+      // fetchTaskInfo(taskId);
     } else {
       fetchAllFiles();
       setCurrentTask(null);

@@ -22,11 +22,11 @@ class AnnotationService:
         
         return annotation_repository.get_annotations_for_task(task_id)
     
-    def update_bounding_box(self, bbox_id: str, update_data: dict):
+    def update_bounding_box(self, bbox_id: str, update_data: str):
         db = next(get_db())
         annotation_repository = AnnotationRepository(db)
 
-        return annotation_repository.update_bounding_box_label(bbox_id, update_data)
+        return annotation_repository.update_bounding_box(bbox_id, update_data)
 
     def delete_bounding_box(self, bbox_id: str):
         db = next(get_db())

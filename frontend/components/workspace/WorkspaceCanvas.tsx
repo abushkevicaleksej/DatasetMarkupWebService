@@ -108,6 +108,13 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     };
   };
 
+  const toScreen = (normX: number, normY: number) => {
+    return {
+      x: normX * imgDimensions.width * scale + position.x,
+      y: normY * imgDimensions.height * scale + position.y
+    };
+  };
+
   const isPointInBBox = (normPoint: {x: number, y: number}, bbox: BoundingBox) => {
     return (
       normPoint.x >= bbox.x && normPoint.x <= bbox.x + bbox.width &&
@@ -130,6 +137,7 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     const screenH = bbox.height * imgDimensions.height * scale;
     
     const handleSize = 8;
+    
     const handles: Record<ResizeHandle, {x: number, y: number}> = {
       nw: { x: screenX, y: screenY },
       ne: { x: screenX + screenW, y: screenY },
@@ -154,7 +162,8 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     e.preventDefault();
 
     const normPoint = getNormalizedPoint(e.clientX, e.clientY);
-    
+    const screenPoint = { x: e.clientX, y: e.clientY };
+
     if (activeTool === 'move' || e.button === 1) {
       setInteractionMode('panning');
       setStartPoint({ x: e.clientX - position.x, y: e.clientY - position.y });
@@ -175,6 +184,7 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     if ((activeTool === 'select' || activeTool === 'erase') && e.button === 0) {
       const currentAnns = annotations.find(a => a.file_id === currentFile?.id);
       const bboxes = currentAnns?.bounding_boxes || [];
+      
       const clickedBox = [...bboxes].reverse().find(b => isPointInBBox(normPoint, b));
 
       if (clickedBox) {
@@ -247,15 +257,12 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
       newX = clamp(newX, 0, 1 - initialBBox.width);
       newY = clamp(newY, 0, 1 - initialBBox.height);
 
-      if (!isNaN(newX) && !isNaN(newY)) {
-          updateBoundingBox(selectedBoundingBox.id, {
-            x: newX,
-            y: newY
-          }, false);
-      }
+      updateBoundingBox(selectedBoundingBox.id, {
+        x: newX,
+        y: newY
+      }, false);
       return;
     }
-
     if (interactionMode === 'resizing_bbox' && initialBBox && selectedBoundingBox && activeHandle) {
       const safeMouseX = clamp(normPoint.x, 0, 1);
       const safeMouseY = clamp(normPoint.y, 0, 1);
@@ -330,6 +337,7 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
           return;
         }
       }
+      
       const currentAnns = annotations.find(a => a.file_id === currentFile?.id);
       const bboxes = currentAnns?.bounding_boxes || [];
       const isOver = bboxes.some(b => isPointInBBox(normPoint, b));
@@ -349,6 +357,7 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     setInteractionMode('idle');
     setInitialBBox(null);
     setActiveHandle(null);
+    setIsDragging(false); 
   };
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -385,15 +394,14 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
         borderRadius: '50%',
         zIndex: 20,
         pointerEvents: 'none',
-        transform: 'translate(-50%, -50%)'
       };
 
-      if (handle.includes('n')) style.top = '0%';
-      if (handle.includes('s')) style.top = '100%';
-      if (handle.includes('w')) style.left = '0%';
-      if (handle.includes('e')) style.left = '100%';
-      if (handle === 'n' || handle === 's') style.left = '50%';
-      if (handle === 'e' || handle === 'w') style.top = '50%';
+      if (handle.includes('n')) style.top = '-4px';
+      if (handle.includes('s')) style.bottom = '-4px';
+      if (handle.includes('w')) style.left = '-4px';
+      if (handle.includes('e')) style.right = '-4px';
+      if (handle === 'n' || handle === 's') style.left = 'calc(50% - 4px)';
+      if (handle === 'e' || handle === 'w') style.top = 'calc(50% - 4px)';
 
       return <div key={handle} style={style} />;
     });
