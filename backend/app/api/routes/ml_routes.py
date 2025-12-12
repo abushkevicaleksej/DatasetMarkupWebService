@@ -48,9 +48,9 @@ async def delete_model(model_id: str, db: Session = Depends(get_db)):
 async def create_model(model_data: MLModelCreate, db: Session = Depends(get_db)):
     model_repo = MLModelRepository(db)
 
+    print(model_repo)
     try:
         model_path = Path(model_data.model_path)
-
         if not model_path.exists():
             raise HTTPException(status_code=400, detail="Model file not found")
 
