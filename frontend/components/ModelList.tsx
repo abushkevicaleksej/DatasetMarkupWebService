@@ -2,16 +2,25 @@ import { useState, useEffect, createContext } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Box, CheckCircle2, Loader2, Trash2, Power, PowerOff } from 'lucide-react';
+import { Box, CheckCircle2, Loader2, Trash2, Power, PowerOff, FileText, Settings } from 'lucide-react';
 import { AddModelForm } from './AddModelForm';
+import { ModelType, ModelFramework, InputSize } from './types/ml-types';
 
 interface Model {
   id: string;
   name: string;
   version: string;
+  model_type: string;
+  framework: string;
   description: string;
+  supported_classes: string[];
+  input_size: InputSize;
+  confidence_threshold: number;
   is_active: boolean;
-  status?: string;
+  is_pretrained: boolean;
+  accuracy?: number;
+  created_at: string;
+  updated_at: string;
 }
 
 const ModelsContext = createContext<{
@@ -45,6 +54,7 @@ export function ModelList() {
       const data = await response.json();
       console.log('Полученные данные:', data);
       
+      // Обрабатываем разные форматы ответа
       if (Array.isArray(data)) {
         setModels(data);
       } else if (data.models && Array.isArray(data.models)) {
@@ -138,14 +148,31 @@ export function ModelList() {
     fetchModels();
   }, []);
 
-  const getModelStatus = (model: Model) => {
-    if (model.status) return model.status;
-    return model.is_active ? 'активна' : 'неактивна';
+  const getModelTypeLabel = (type: string) => {
+    const typeMap: Record<string, string> = {
+      [ModelType.OBJECT_DETECTION]: 'Детекция',
+      [ModelType.CLASSIFICATION]: 'Классификация',
+      [ModelType.SEGMENTATION]: 'Сегментация',
+      [ModelType.POSE_ESTIMATION]: 'Поза',
+      [ModelType.OTHER]: 'Другое',
+    };
+    return typeMap[type] || type;
+  };
+
+  const getFrameworkLabel = (framework: string) => {
+    const frameworkMap: Record<string, string> = {
+      [ModelFramework.YOLO]: 'YOLO',
+      [ModelFramework.TORCHVISION]: 'TorchVision',
+      [ModelFramework.TENSORFLOW]: 'TensorFlow',
+      [ModelFramework.PYTORCH]: 'PyTorch',
+      [ModelFramework.ONNX]: 'ONNX',
+      [ModelFramework.OTHER]: 'Другое',
+    };
+    return frameworkMap[framework] || framework;
   };
 
   const getBadgeVariant = (model: Model) => {
-    if (model.status === 'активна' || model.is_active) return 'default';
-    return 'secondary';
+    return model.is_active ? 'default' : 'secondary';
   };
 
   if (loading) {
@@ -199,7 +226,10 @@ export function ModelList() {
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2">
                           <Box className="w-5 h-5" />
-                          <CardTitle>{model.name}</CardTitle>
+                          <div>
+                            <CardTitle>{model.name}</CardTitle>
+                            <p className="text-sm text-muted-foreground">v{model.version}</p>
+                          </div>
                         </div>
                         <div className="flex gap-1">
                           <Button 
@@ -231,17 +261,58 @@ export function ModelList() {
                           </Button>
                         </div>
                       </div>
-                      <CardDescription>{model.description}</CardDescription>
+                      <CardDescription>{model.description || 'Без описания'}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={getBadgeVariant(model)}>
-                            {getModelStatus(model)}
-                          </Badge>
-                          <span className="text-muted-foreground">v{model.version}</span>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={getBadgeVariant(model)}>
+                          {model.is_active ? 'Активна' : 'Неактивна'}
+                        </Badge>
+                        <Badge variant="outline">
+                          {getFrameworkLabel(model.framework)}
+                        </Badge>
+                        <Badge variant="outline">
+                          {getModelTypeLabel(model.model_type)}
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="flex items-center gap-1">
+                          <Settings className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-muted-foreground">Размер:</span>
+                          <span>
+                            {model.input_size.width}×{model.input_size.height}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <FileText className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-muted-foreground">Порог:</span>
+                          <span>{model.confidence_threshold.toFixed(2)}</span>
                         </div>
                       </div>
+                      
+                      {model.supported_classes && model.supported_classes.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Поддерживаемые классы:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {model.supported_classes.slice(0, 4).map((className, index) => (
+                              <Badge 
+                                key={index} 
+                                variant="outline" 
+                                className="text-xs"
+                              >
+                                {className}
+                              </Badge>
+                            ))}
+                            {model.supported_classes.length > 4 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{model.supported_classes.length - 4} ещё
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="flex gap-2">
                         <Button 
                           size="sm" 
