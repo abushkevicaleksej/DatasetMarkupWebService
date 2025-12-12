@@ -68,6 +68,7 @@ async def delete_file(file_id: str, db: Session = Depends(get_db)):
     from app.infrastructure.repositories.file_repository import FileRepository
     
     try:
+        print(file_id)
         file_repository = FileRepository(db)
         success = file_repository.delete(file_id)
         
