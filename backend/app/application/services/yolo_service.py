@@ -60,16 +60,16 @@ class YOLOService:
                     class_name = model.names[cls]
 
                     height, width = image.shape[:2]
-                    x_center = (x1 + x2) / 2 / width
-                    y_center = (y1 + y2) / 2 / height
+                    x_top_left = x1 / width
+                    y_top_left = y1 / height
                     bbox_width = (x2 - x1) / width
                     bbox_height = (y2 - y1) / height
 
                     prediction = BoundingBoxPrediction(
-                        x=x_center,
-                        y=y_center,
-                        width=bbox_width,
-                        height=bbox_height,
+                        x=float(x_top_left),
+                        y=float(y_top_left),
+                        width=float(bbox_width),
+                        height=float(bbox_height),
                         label=class_name,
                         confidence=float(conf)
                     )
@@ -178,7 +178,10 @@ class YOLOService:
             yolo_annotations = []
             for bbox in annotation.bounding_boxes:
                 class_id = self._get_class_id(bbox.label)
-                yolo_bbox = f"{class_id} {bbox.x} {bbox.y} {bbox.width} {bbox.height}"
+                # Конвертируем из top_left (база) в center (для YOLO)
+                cnt_x = bbox.x + (bbox.width / 2)
+                cnt_y = bbox.y + (bbox.height / 2)
+                yolo_bbox = f"{class_id} {cnt_x} {cnt_y} {bbox.width} {bbox.height}"
                 yolo_annotations.append(yolo_bbox)
 
             training_data.append({
