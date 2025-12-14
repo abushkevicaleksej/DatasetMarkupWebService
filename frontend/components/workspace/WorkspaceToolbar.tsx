@@ -19,8 +19,9 @@ interface WorkspaceToolbarProps {
   onSaveClick: () => void;
   hasFiles: boolean;
   isTaskView?: boolean;
-  // Добавляем новый проп
   onOpenModelDialog?: () => void;
+  // Добавляем новый проп
+  onOpenExportDialog?: () => void;
 }
 
 export function WorkspaceToolbar({ 
@@ -29,7 +30,8 @@ export function WorkspaceToolbar({
   onSaveClick, 
   hasFiles, 
   isTaskView = false,
-  onOpenModelDialog
+  onOpenModelDialog,
+  onOpenExportDialog // Деструктурируем
 }: WorkspaceToolbarProps) {
   const tools = [
     { id: 'select' as Tool, icon: MousePointer2, label: 'Выделение' },
@@ -54,7 +56,6 @@ export function WorkspaceToolbar({
 
       <Separator className="my-2" />
       
-      {/* Кнопка AI Модели */}
       <Button 
           variant="ghost" 
           size="icon" 
@@ -65,13 +66,18 @@ export function WorkspaceToolbar({
           <BrainIcon className="w-5 h-5" />
       </Button>
 
+      {/* Обновленная кнопка экспорта */}
       <Button 
           variant="ghost" 
           size="icon" 
           title="Экспорт разметки"
+          onClick={onOpenExportDialog}
+          disabled={!isTaskView || !hasFiles} // Экспорт доступен только внутри задачи
         >
           <DownloadIcon className="w-5 h-5" />
       </Button>
+
+      <Separator className="my-2" />
 
       {isTaskView ? (
         <Button 

@@ -5,6 +5,7 @@ import { WorkspaceCanvas } from './workspace/WorkspaceCanvas';
 import { AnnotationList } from './workspace/AnnotationList';
 import { FileList } from './workspace/FileList';
 import { WorkspaceNavigation } from './workspace/WorkspaceNavigation';
+import { ExportTaskDialog } from './workspace/ExportDialogTask';
 import { SaveTaskForm } from './workspace/SaveTaskForm';
 import { AnnotationsProvider } from './workspace/AnnotationsContext';
 import { ModelInferenceDialog } from '../components/ModelInferenceDialog';
@@ -45,6 +46,7 @@ export function Workspace() {
   const [currentTask, setCurrentTask] = useState<TaskResponse | null>(null);
   
   const [isModelDialogOpen, setIsModelDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   
   const [searchParams, setSearchParams] = useSearchParams();
   const taskId = searchParams.get('taskId');
@@ -189,23 +191,6 @@ export function Workspace() {
   return (
     <AnnotationsProvider>
       <div className="h-[calc(100vh-8rem)] flex flex-col">
-        {currentTask && (
-          <div className="bg-primary/10 border-b px-4 py-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-semibold">{currentTask.name}</h2>
-                {currentTask.description && (
-                  <p className="text-sm text-muted-foreground">{currentTask.description}</p>
-                )}
-              </div>
-              <div className="flex items-center gap-4 text-sm">
-                <span>Статус: {currentTask.status}</span>
-                <span>Файлов: {currentTask.file_count}</span>
-                <span>Аннотаций: {currentTask.annotation_count}</span>
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="flex-1 flex gap-4 p-4 overflow-hidden">
           <WorkspaceToolbar 
@@ -215,6 +200,7 @@ export function Workspace() {
             hasFiles={files.length > 0}
             isTaskView={!!taskId}
             onOpenModelDialog={() => setIsModelDialogOpen(true)}
+            onOpenExportDialog={() => setIsExportDialogOpen(true)}
           />
           
           <WorkspaceCanvas 
@@ -242,15 +228,13 @@ export function Workspace() {
           onFileChange={handleFileChange}
         />
 
-        {!taskId && (
-          <SaveTaskForm
-            isOpen={showSaveForm}
-            onClose={() => setShowSaveForm(false)}
-            onSave={handleSaveTask}
-            fileIds={fileIds}
-            loading={savingTask}
-          />
-        )}
+        
+        <ExportTaskDialog
+          isOpen={isExportDialogOpen}
+          onClose={() => setIsExportDialogOpen(false)}
+          taskId={taskId}
+          taskName={currentTask?.name}
+        />
 
         <ModelInferenceDialog 
           open={isModelDialogOpen}
