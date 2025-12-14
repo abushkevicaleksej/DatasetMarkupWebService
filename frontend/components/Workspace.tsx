@@ -7,6 +7,7 @@ import { FileList } from './workspace/FileList';
 import { WorkspaceNavigation } from './workspace/WorkspaceNavigation';
 import { SaveTaskForm } from './workspace/SaveTaskForm';
 import { AnnotationsProvider } from './workspace/AnnotationsContext';
+import { ModelInferenceDialog } from '../components/ModelInferenceDialog';
 
 interface WorkspaceFile {
   id: string;
@@ -42,6 +43,8 @@ export function Workspace() {
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [savingTask, setSavingTask] = useState(false);
   const [currentTask, setCurrentTask] = useState<TaskResponse | null>(null);
+  
+  const [isModelDialogOpen, setIsModelDialogOpen] = useState(false);
   
   const [searchParams, setSearchParams] = useSearchParams();
   const taskId = searchParams.get('taskId');
@@ -107,21 +110,6 @@ export function Workspace() {
       setLoading(false);
     }
   };
-
-  // const fetchTaskInfo = async (taskId: string) => {
-  //   try {
-  //     const response = await fetch(`http://localhost:8000/api/routes/api/tasks/${taskId}`);
-      
-  //     if (!response.ok) {
-  //       throw new Error(`HTTP error! status: ${response.status}`);
-  //     }
-      
-  //     const task: TaskResponse = await response.json();
-  //     setCurrentTask(task);
-  //   } catch (err) {
-  //     console.error('Error fetching task info:', err);
-  //   }
-  // };
 
   const handleSaveTask = async (taskData: TaskCreateRequest) => {
     try {
@@ -189,7 +177,6 @@ export function Workspace() {
   useEffect(() => {
     if (taskId) {
       fetchTaskFiles(taskId);
-      // fetchTaskInfo(taskId);
     } else {
       fetchAllFiles();
       setCurrentTask(null);
@@ -227,6 +214,7 @@ export function Workspace() {
             onSaveClick={handleSaveClick}
             hasFiles={files.length > 0}
             isTaskView={!!taskId}
+            onOpenModelDialog={() => setIsModelDialogOpen(true)}
           />
           
           <WorkspaceCanvas 
@@ -263,6 +251,14 @@ export function Workspace() {
             loading={savingTask}
           />
         )}
+
+        <ModelInferenceDialog 
+          open={isModelDialogOpen}
+          onOpenChange={setIsModelDialogOpen}
+          currentFileId={currentFileId}
+          allFileIds={fileIds}
+          taskId={taskId}
+        />
       </div>
     </AnnotationsProvider>
   );

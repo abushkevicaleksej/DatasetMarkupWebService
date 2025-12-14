@@ -1,5 +1,6 @@
 import React, { createContext, useState, useCallback, ReactNode } from 'react';
 import { BoundingBox, Annotation } from '../types/annotations';
+import { PredictionResponse } from '../types/ml';
 
 interface AnnotationsContextType {
   annotations: Annotation[];
@@ -16,6 +17,7 @@ interface AnnotationsContextType {
   updateBoundingBox: (bboxId: string, updates: Partial<BoundingBox>, saveToBackend?: boolean) => Promise<void>;
   deleteBoundingBox: (bboxId: string) => Promise<void>;
   selectBoundingBox: (bbox: BoundingBox | null) => void;
+  addPredictionResults: (results: PredictionResponse[], taskId?: string | null) => void;
 }
 
 export const AnnotationsContext = createContext<AnnotationsContextType | undefined>(undefined);

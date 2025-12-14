@@ -19,6 +19,8 @@ interface WorkspaceToolbarProps {
   onSaveClick: () => void;
   hasFiles: boolean;
   isTaskView?: boolean;
+  // Добавляем новый проп
+  onOpenModelDialog?: () => void;
 }
 
 export function WorkspaceToolbar({ 
@@ -26,7 +28,8 @@ export function WorkspaceToolbar({
   setActiveTool, 
   onSaveClick, 
   hasFiles, 
-  isTaskView = false 
+  isTaskView = false,
+  onOpenModelDialog
 }: WorkspaceToolbarProps) {
   const tools = [
     { id: 'select' as Tool, icon: MousePointer2, label: 'Выделение' },
@@ -50,10 +53,14 @@ export function WorkspaceToolbar({
       ))}
 
       <Separator className="my-2" />
+      
+      {/* Кнопка AI Модели */}
       <Button 
           variant="ghost" 
           size="icon" 
-          title="Использовать модель"
+          title="Использовать AI модель"
+          onClick={onOpenModelDialog}
+          disabled={!hasFiles}
         >
           <BrainIcon className="w-5 h-5" />
       </Button>
@@ -76,7 +83,6 @@ export function WorkspaceToolbar({
           <Eye className="w-5 h-5" />
         </Button>
       ) : (
-        
         <Button 
           variant="ghost" 
           size="icon" 
@@ -86,7 +92,6 @@ export function WorkspaceToolbar({
         >
           <Save className="w-5 h-5" />
         </Button>
-
       )}
     </div>
   );
