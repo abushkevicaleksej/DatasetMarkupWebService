@@ -1,8 +1,9 @@
-# app/infrastructure/file_processors/video_extractor.py
 import asyncio
 from pathlib import Path
 from typing import List
+
 from app.domain.interfaces.file_processor import ExtractorProcessor
+
 
 class VideoExtractor(ExtractorProcessor):
     
@@ -10,9 +11,11 @@ class VideoExtractor(ExtractorProcessor):
     def supported_extensions(self) -> List[str]:
         return ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.m4v']
     
+
     async def process(self, file_path: Path, original_filename: str):
         raise NotImplementedError("Use extract() method via ContentExtractor")
     
+
     async def extract(self, file_path: Path, output_dir: Path, fps: int = 1) -> List[Path]:
         try:
             import subprocess

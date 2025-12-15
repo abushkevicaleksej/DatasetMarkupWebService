@@ -7,10 +7,12 @@ from typing import Dict, Any, List
 from app.domain.entities.annotation import Annotation
 from app.domain.entities.file_info import FileInfo
 
+
 class TaskStatus(Enum):
     IN_PROGRESS = 'in progress'
     COMPLETED = 'completed'
     REJECTED = 'rejected'
+
 
 @dataclass
 class Task:

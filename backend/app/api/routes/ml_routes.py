@@ -14,7 +14,9 @@ from app.infrastructure.repositories.ml_model_repository import MLModelRepositor
 from app.infrastructure.repositories.file_repository import FileRepository
 from app.infrastructure.repositories.annotation_repository import AnnotationRepository
 
+
 router = APIRouter()
+
 
 @router.get("/models", response_model=List[MLModelResponse])
 async def get_models(db: Session = Depends(get_db)):
@@ -31,6 +33,7 @@ async def get_model(model_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Model not found")
     return model
 
+
 @router.delete("/models/{model_id}")
 async def delete_model(model_id: str, db: Session = Depends(get_db)):
     try:
@@ -43,6 +46,7 @@ async def delete_model(model_id: str, db: Session = Depends(get_db)):
         return {"message": "Model deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.post("/models", response_model=MLModelResponse)
 async def create_model(model_data: MLModelCreate, db: Session = Depends(get_db)):

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, Any, List
 
+
 @dataclass
 class BoundingBox:
     id: UUID | None

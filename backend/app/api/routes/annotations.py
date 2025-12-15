@@ -100,6 +100,7 @@ async def get_annotations_for_file(file_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @router.put("/annotations/bbox/{bbox_id}")
 async def update_bounding_box(bbox_id: str, update_data: BoundingBoxUpdate, db: Session = Depends(get_db)):
     from app.infrastructure.repositories.annotation_repository import AnnotationRepository
@@ -124,6 +125,7 @@ async def update_bounding_box(bbox_id: str, update_data: BoundingBoxUpdate, db: 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 @router.delete("/annotations/{annotation_id}")
 async def delete_annotation(annotation_id: str, db: Session = Depends(get_db)):
     from app.infrastructure.repositories.annotation_repository import AnnotationRepository
@@ -138,6 +140,7 @@ async def delete_annotation(annotation_id: str, db: Session = Depends(get_db)):
         return {"message": "Annotation deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.delete("/annotations/{annotation_id}/bbox/{bbox_id}")
 async def delete_bounding_box(annotation_id: str, bbox_id: str, db: Session = Depends(get_db)):

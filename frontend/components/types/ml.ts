@@ -25,7 +25,6 @@ export interface PredictionResponse {
   total_predictions: number;
 }
 
-// Используем тот же базовый URL, что и в Workspace.tsx
 const API_BASE_URL = 'http://localhost:8000/api/routes'; 
 
 export const mlApi = {

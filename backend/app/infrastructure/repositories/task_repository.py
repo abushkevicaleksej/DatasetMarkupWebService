@@ -1,11 +1,14 @@
-from sqlalchemy.orm import Session
-from app.domain.models import Task, File
 from typing import List, Optional
+
+from sqlalchemy.orm import Session
+
+from app.domain.models import Task, File
 
 class TaskRepository:
     def __init__(self, db: Session):
         self.db = db
     
+
     def create(self, name: str, description: str, file_ids: List[str] = None) -> Task:
         db_task = Task(
             name=name,
@@ -22,12 +25,15 @@ class TaskRepository:
         self.db.refresh(db_task)
         return db_task
     
+
     def get_by_id(self, task_id: str) -> Optional[Task]:
         return self.db.query(Task).filter(Task.id == task_id).first()
     
+
     def get_all(self) -> List[Task]:
         return self.db.query(Task).all()
     
+
     def update_status(self, task_id: str, status: str) -> Optional[Task]:
         task = self.get_by_id(task_id)
         if task:
@@ -36,6 +42,7 @@ class TaskRepository:
             self.db.refresh(task)
         return task
     
+
     def add_files_to_task(self, task_id: str, file_ids: List[str]) -> Optional[Task]:
         task = self.get_by_id(task_id)
         if task:
@@ -45,6 +52,7 @@ class TaskRepository:
             self.db.refresh(task)
         return task
     
+
     def delete(self, task_id: str) -> bool:
         task = self.get_by_id(task_id)
         print(task)

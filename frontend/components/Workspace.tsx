@@ -6,7 +6,6 @@ import { AnnotationList } from './workspace/AnnotationList';
 import { FileList } from './workspace/FileList';
 import { WorkspaceNavigation } from './workspace/WorkspaceNavigation';
 import { ExportTaskDialog } from './workspace/ExportDialogTask';
-import { SaveTaskForm } from './workspace/SaveTaskForm';
 import { AnnotationsProvider } from './workspace/AnnotationsContext';
 import { ModelInferenceDialog } from '../components/ModelInferenceDialog';
 

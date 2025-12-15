@@ -38,14 +38,12 @@ export function ModelInferenceDialog({
   allFileIds,
   taskId
 }: ModelInferenceDialogProps) {
-  // Получаем доступ к функции обновления аннотаций из контекста
   const context = useContext(AnnotationsContext);
   
   const [models, setModels] = useState<MLModel[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
   const [processing, setProcessing] = useState(false);
 
-  // Состояние формы
   const [selectedModelId, setSelectedModelId] = useState<string>('');
   const [confidence, setConfidence] = useState<number>(50);
   const [scope, setScope] = useState<'current' | 'all'>('current');
@@ -61,7 +59,6 @@ export function ModelInferenceDialog({
     try {
       const data = await mlApi.getModels();
       setModels(data);
-      // Выбираем активную модель или первую попавшуюся
       const activeModel = data.find(m => m.is_active) || data[0];
       if (activeModel) {
         setSelectedModelId(activeModel.id);
@@ -107,13 +104,11 @@ export function ModelInferenceDialog({
 
       console.log(`Обработано файлов: ${results.length}`);
       
-      // Обновляем аннотации для текущего файла
       if (currentFileId && context) {
         await context.loadAnnotationsForFile(currentFileId);
       }
       
       onOpenChange(false);
-      // alert(`Успешно обработано изображений: ${results.length}`);
     } catch (error) {
       console.error(error);
       alert(error instanceof Error ? error.message : 'Ошибка при обработке');
@@ -136,7 +131,6 @@ export function ModelInferenceDialog({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Выбор модели */}
           <div className="grid gap-2">
             <Label htmlFor="model">Модель</Label>
             {loadingModels ? (
@@ -164,7 +158,6 @@ export function ModelInferenceDialog({
             )}
           </div>
 
-          {/* Порог уверенности */}
           <div className="grid gap-4">
             <div className="flex items-center justify-between">
               <Label htmlFor="confidence">Порог уверенности (Confidence)</Label>
@@ -180,7 +173,6 @@ export function ModelInferenceDialog({
             />
           </div>
 
-          {/* Область действия */}
           <div className="grid gap-2">
             <Label>Область обработки</Label>
             <RadioGroup 

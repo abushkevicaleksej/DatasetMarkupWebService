@@ -16,6 +16,7 @@ class YOLOService:
         self.loaded_models: Dict[str, Any] = {}
         self.model_cache = {}
 
+
     def load_model(self, model_path: str, config_path: Optional[str] = None) -> Any:
         if model_path in self.model_cache:
             return self.model_cache[model_path]
@@ -28,6 +29,7 @@ class YOLOService:
         except Exception as e:
             print(f"Error loading model {model_path}: {e}")
             raise
+
 
     async def predict_single_image(self, model_id: str, file_path: Path,
                                    confidence_threshold: float = 0.5) -> List[BoundingBoxPrediction]:
@@ -77,6 +79,7 @@ class YOLOService:
 
         return predictions, processing_time
 
+
     async def batch_predict(self, model_id: str, file_paths: List[Path],
                             confidence_threshold: float = 0.5) -> Dict[Path, PredictionResponse]:
         results = {}
@@ -98,6 +101,7 @@ class YOLOService:
                 continue
 
         return results
+
 
     async def online_learning(self, model_id: str, task_id: str,
                               epochs: int = 10, batch_size: int = 8,
@@ -137,11 +141,8 @@ class YOLOService:
 
             model = self.load_model(model_info.model_path)
 
-            # Дообучаем модель
-            # Здесь будет логика дообучения YOLO на новых данных
-
             results = model.train(
-                data='coco128.yaml',  # Нужно создать свой конфиг с нашими данными
+                data='coco128.yaml',
                 epochs=epochs,
                 batch=batch_size,
                 lr0=learning_rate,
@@ -167,6 +168,7 @@ class YOLOService:
             })
             raise e
 
+
     def _prepare_training_data(self, annotations, file_repo) -> List[Dict]:
         training_data = []
 
@@ -178,7 +180,6 @@ class YOLOService:
             yolo_annotations = []
             for bbox in annotation.bounding_boxes:
                 class_id = self._get_class_id(bbox.label)
-                # Конвертируем из top_left (база) в center (для YOLO)
                 cnt_x = bbox.x + (bbox.width / 2)
                 cnt_y = bbox.y + (bbox.height / 2)
                 yolo_bbox = f"{class_id} {cnt_x} {cnt_y} {bbox.width} {bbox.height}"
@@ -190,6 +191,7 @@ class YOLOService:
             })
 
         return training_data
+
 
     def _get_class_id(self, class_name: str) -> int:
         class_mapping = {
@@ -203,6 +205,7 @@ class YOLOService:
         }
         return class_mapping.get(class_name.lower(), 0)
 
+
     def _save_updated_model(self, model, original_model_info) -> str:
         models_dir = Path("ml_models")
         models_dir.mkdir(exist_ok=True)
@@ -214,5 +217,6 @@ class YOLOService:
         model.save(new_model_path)
 
         return str(new_model_path)
+
 
 yolo_service = YOLOService()

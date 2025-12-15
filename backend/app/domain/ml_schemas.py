@@ -3,15 +3,18 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
 
+
 class ModelType(str, Enum):
     OBJECT_DETECTION = "object_detection"
     SEGMENTATION = "segmentation"
     CLASSIFICATION = "classification"
 
+
 class ModelFramework(str, Enum):
     YOLO = "yolo"
     DETECTRON = "detectron"
     TORCHVISION = "torchvision"
+
 
 class MLModelCreate(BaseModel):
     name: str = Field(..., description="Model name")
@@ -25,6 +28,7 @@ class MLModelCreate(BaseModel):
     input_size: Dict[str, int] = Field(..., description="Input size for model")
     confidence_threshold: float = Field(0.5, description="Default confidence threshold")
     is_active: bool = Field(False, description="Whether model is active")
+
 
 class MLModelResponse(BaseModel):
     id: str
@@ -42,12 +46,14 @@ class MLModelResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+
 class PredictionRequest(BaseModel):
     file_ids: List[str] = Field(..., description="List of file IDs to process")
     model_id: str = Field(..., description="Model ID to use for prediction")
     confidence_threshold: float = Field(0.5, description="Confidence threshold")
     max_predictions: int = Field(5, description="Maximum number of images to process")
     task_id: Optional[str] = Field(None, description="Task ID to save annotations to")
+
 
 class BoundingBoxPrediction(BaseModel):
     x: float = Field(..., description="Normalized x coordinate")
@@ -57,11 +63,13 @@ class BoundingBoxPrediction(BaseModel):
     label: str = Field(..., description="Predicted label")
     confidence: float = Field(..., description="Confidence score")
 
+
 class PredictionResponse(BaseModel):
     file_id: str
     predictions: List[BoundingBoxPrediction]
     processing_time: float
     total_predictions: int
+
 
 class OnlineLearningRequest(BaseModel):
     model_id: str = Field(..., description="Model ID to fine-tune")
@@ -70,6 +78,7 @@ class OnlineLearningRequest(BaseModel):
     batch_size: int = Field(8, description="Batch size for training")
     learning_rate: float = Field(0.001, description="Learning rate")
     validation_split: float = Field(0.2, description="Validation split ratio")
+
 
 class TrainingSessionResponse(BaseModel):
     id: str

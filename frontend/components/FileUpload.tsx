@@ -179,14 +179,12 @@ export function FileUpload() {
           </Button>
         </div>
 
-        {/* Error message */}
         {error && (
           <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-lg">
             {error}
           </div>
         )}
 
-        {/* Selected files list */}
         {selectedFiles.length > 0 && (
           <div className="space-y-3">
             <p className="font-medium">Выбранные файлы ({selectedFiles.length})</p>

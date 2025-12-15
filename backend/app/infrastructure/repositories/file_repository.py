@@ -1,13 +1,17 @@
+from uuid import UUID
+from typing import List, Optional
+
 from sqlalchemy.orm import Session
+
 from app.domain.models import File
 from app.domain.entities.file_info import FileInfo
-from typing import List, Optional
-from uuid import UUID
+
 
 class FileRepository:
     def __init__(self, db: Session):
         self.db = db
     
+
     def create(self, file_info: FileInfo) -> File:
         db_file = File(
             id=str(file_info.id),
@@ -27,15 +31,19 @@ class FileRepository:
         self.db.refresh(db_file)
         return db_file
     
+
     def get_by_id(self, file_id: str) -> Optional[File]:
         return self.db.query(File).filter(File.id == file_id).first()
     
+
     def get_by_ids(self, file_ids: List[str]) -> List[File]:
         return self.db.query(File).filter(File.id.in_(file_ids)).all()
     
+
     def get_all(self) -> List[File]:
         return self.db.query(File).all()
     
+
     def delete(self, file_id: str) -> bool:
         file = self.get_by_id(file_id)
         if file:
@@ -44,6 +52,7 @@ class FileRepository:
             return True
         return False
     
+
     def update_file(self, file_id: str, update_data: dict) -> bool:
         
         file = self.db.query(File).filter(File.id == file_id).first()
@@ -58,6 +67,7 @@ class FileRepository:
         self.db.refresh(file)
         return True
     
+
     def to_entity(self, db_file: File) -> FileInfo:
         from app.domain.entities.file_info import FileInfo, MediaType
         

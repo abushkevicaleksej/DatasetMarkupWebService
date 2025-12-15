@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List, Dict
 
 from sqlalchemy.orm import Session
+
 from app.infrastructure.repositories.task_repository import TaskRepository
 from app.infrastructure.repositories.file_repository import FileRepository
 
@@ -14,6 +15,7 @@ class ExportService:
         self.db = db
         self.task_repo = TaskRepository(db)
         self.file_repo = FileRepository(db)
+
 
     def export_task_yolo(self, task_id: str) -> str:
         task = self.task_repo.get_by_id(task_id)
@@ -71,7 +73,7 @@ class ExportService:
                                 
                             else:
                                 if not file.width or not file.height:
-                                    continue # Нельзя нормализовать без размеров
+                                    continue
                                 
                                 w = bbox.width / file.width
                                 h = bbox.height / file.height

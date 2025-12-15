@@ -1,23 +1,21 @@
 import os
-
 from pathlib import Path
-
 from sqlalchemy.orm import Session
 
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import HTMLResponse, FileResponse
 
 from app.infrastructure.database import get_db
-
 from app.domain.ml_schemas import (
     PredictionResponse
 )
 
+
 BASE_DIR = Path(__file__).parent.parent.parent
+
 
 router = APIRouter()
 
-file_storage = {}
 
 @router.get("/files")
 async def get_all_files(db: Session = Depends(get_db)):
@@ -39,6 +37,7 @@ async def get_all_files(db: Session = Depends(get_db)):
         ]
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
 
 @router.get("/files/{file_id}")
 async def get_file(file_id: str, db: Session = Depends(get_db)):
@@ -63,6 +62,7 @@ async def get_file(file_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error serving file: {str(e)}")
     
+
 @router.delete("/files/{file_id}")
 async def delete_file(file_id: str, db: Session = Depends(get_db)):
     from app.infrastructure.repositories.file_repository import FileRepository
@@ -79,6 +79,7 @@ async def delete_file(file_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
+
 @router.put("/files/{file_id}")
 async def update_files(file_id: str, update_data: PredictionResponse, db: Session = Depends(get_db)):
     from app.infrastructure.repositories.file_repository import FileRepository
