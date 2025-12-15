@@ -20,6 +20,7 @@ interface WorkspaceToolbarProps {
   hasFiles: boolean;
   isTaskView?: boolean;
   onOpenModelDialog?: () => void;
+  // Добавляем новый проп
   onOpenExportDialog?: () => void;
 }
 
@@ -30,7 +31,7 @@ export function WorkspaceToolbar({
   hasFiles, 
   isTaskView = false,
   onOpenModelDialog,
-  onOpenExportDialog
+  onOpenExportDialog // Деструктурируем
 }: WorkspaceToolbarProps) {
   const tools = [
     { id: 'select' as Tool, icon: MousePointer2, label: 'Выделение' },
@@ -65,12 +66,13 @@ export function WorkspaceToolbar({
           <BrainIcon className="w-5 h-5" />
       </Button>
 
+      {/* Обновленная кнопка экспорта */}
       <Button 
           variant="ghost" 
           size="icon" 
           title="Экспорт разметки"
           onClick={onOpenExportDialog}
-          disabled={!isTaskView || !hasFiles}
+          disabled={!isTaskView || !hasFiles} // Экспорт доступен только внутри задачи
         >
           <DownloadIcon className="w-5 h-5" />
       </Button>

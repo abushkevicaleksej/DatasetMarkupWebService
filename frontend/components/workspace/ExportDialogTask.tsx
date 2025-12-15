@@ -9,7 +9,7 @@ import {
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'; // Если у вас есть этот компонент
 
 import { Download, Loader2, AlertCircle } from 'lucide-react';
 
@@ -32,6 +32,7 @@ export function ExportTaskDialog({ isOpen, onClose, taskId, taskName }: ExportTa
       setIsExporting(true);
       setError(null);
 
+      // Формируем URL. Обратите внимание на префикс /api/routes, который вы используете
       const response = await fetch(`http://localhost:8000/api/routes/api/tasks/${taskId}/export/${format}`);
 
       if (!response.ok) {
@@ -39,17 +40,21 @@ export function ExportTaskDialog({ isOpen, onClose, taskId, taskName }: ExportTa
         throw new Error(errData.detail || 'Ошибка экспорта');
       }
 
+      // Получаем blob (бинарные данные архива)
       const blob = await response.blob();
       
+      // Создаем ссылку для скачивания
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
+      // Имя файла: TaskName_yolo.zip
       const safeName = (taskName || 'dataset').replace(/\s+/g, '_');
       a.download = `${safeName}_${format}.zip`;
       
       document.body.appendChild(a);
       a.click();
       
+      // Чистим за собой
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
@@ -78,6 +83,7 @@ export function ExportTaskDialog({ isOpen, onClose, taskId, taskName }: ExportTa
               Формат
             </Label>
             <div className="col-span-3">
+              {/* Если нет UI компонента Select, используем нативный */}
               <select 
                 id="format"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"

@@ -27,6 +27,7 @@ export function TagsInput({
       e.preventDefault();
       addTag();
     } else if (e.key === 'Backspace' && inputValue === '' && value.length > 0) {
+      // Удаляем последний тэг при нажатии Backspace на пустом поле
       removeTag(value.length - 1);
     }
   };
@@ -34,6 +35,7 @@ export function TagsInput({
   const addTag = () => {
     const tag = inputValue.trim();
     
+    // Очищаем от запятых и точек с запятой в начале и конце
     const cleanTag = tag.replace(/^[,;]+|[,;]+$/g, '');
     
     if (cleanTag && !value.includes(cleanTag)) {

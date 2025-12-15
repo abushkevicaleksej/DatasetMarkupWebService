@@ -54,6 +54,7 @@ export function ModelList() {
       const data = await response.json();
       console.log('Полученные данные:', data);
       
+      // Обрабатываем разные форматы ответа
       if (Array.isArray(data)) {
         setModels(data);
       } else if (data.models && Array.isArray(data.models)) {

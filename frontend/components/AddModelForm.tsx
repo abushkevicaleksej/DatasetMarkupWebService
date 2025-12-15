@@ -41,6 +41,7 @@ export function AddModelForm({ onModelAdded }: AddModelFormProps) {
     setLoading(true);
     setError(null);
 
+    // Валидация обязательных полей
     const errors: string[] = [];
 
     if (!formData.name.trim()) errors.push('Название модели обязательно');
@@ -62,6 +63,7 @@ export function AddModelForm({ onModelAdded }: AddModelFormProps) {
       return;
     }
 
+    // Проверяем длину каждого класса
     const hasInvalidClass = formData.supported_classes.some(
       className => className.length > 50 || className.length === 0
     );

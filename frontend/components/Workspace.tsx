@@ -6,6 +6,7 @@ import { AnnotationList } from './workspace/AnnotationList';
 import { FileList } from './workspace/FileList';
 import { WorkspaceNavigation } from './workspace/WorkspaceNavigation';
 import { ExportTaskDialog } from './workspace/ExportDialogTask';
+import { SaveTaskForm } from './workspace/SaveTaskForm';
 import { AnnotationsProvider } from './workspace/AnnotationsContext';
 import { ModelInferenceDialog } from '../components/ModelInferenceDialog';
 
@@ -190,7 +191,6 @@ export function Workspace() {
   return (
     <AnnotationsProvider>
       <div className="h-[calc(100vh-8rem)] flex flex-col">
-
         <div className="flex-1 flex gap-4 p-4 overflow-hidden">
           <WorkspaceToolbar 
             activeTool={activeTool}
@@ -227,7 +227,15 @@ export function Workspace() {
           onFileChange={handleFileChange}
         />
 
-        
+        {/* Добавлен компонент SaveTaskForm */}
+        <SaveTaskForm
+          isOpen={showSaveForm}
+          onClose={() => setShowSaveForm(false)}
+          onSave={handleSaveTask}
+          fileIds={fileIds}
+          loading={savingTask}
+        />
+
         <ExportTaskDialog
           isOpen={isExportDialogOpen}
           onClose={() => setIsExportDialogOpen(false)}
