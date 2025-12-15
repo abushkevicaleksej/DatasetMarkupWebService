@@ -27,7 +27,6 @@ export function TagsInput({
       e.preventDefault();
       addTag();
     } else if (e.key === 'Backspace' && inputValue === '' && value.length > 0) {
-      // Удаляем последний тэг при нажатии Backspace на пустом поле
       removeTag(value.length - 1);
     }
   };
@@ -35,7 +34,6 @@ export function TagsInput({
   const addTag = () => {
     const tag = inputValue.trim();
     
-    // Очищаем от запятых и точек с запятой в начале и конце
     const cleanTag = tag.replace(/^[,;]+|[,;]+$/g, '');
     
     if (cleanTag && !value.includes(cleanTag)) {
@@ -53,7 +51,6 @@ export function TagsInput({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     
-    // Автоматически добавляем тэг при вводе запятой
     if (val.endsWith(',') || val.endsWith(';')) {
       const tag = val.slice(0, -1).trim();
       if (tag && !value.includes(tag)) {

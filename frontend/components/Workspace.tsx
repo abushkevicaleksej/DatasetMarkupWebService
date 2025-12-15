@@ -227,7 +227,6 @@ export function Workspace() {
           onFileChange={handleFileChange}
         />
 
-        {/* Добавлен компонент SaveTaskForm */}
         <SaveTaskForm
           isOpen={showSaveForm}
           onClose={() => setShowSaveForm(false)}

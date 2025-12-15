@@ -229,7 +229,6 @@ export function FileList({
                             <p className="text-muted-foreground text-xs">{file.size}</p>
                           </div>
                           
-                          {/* Кнопки под названием файла */}
                           <div className="flex items-center gap-1 mt-2">
                             {isTaskView && isActive && (
                               <div 
