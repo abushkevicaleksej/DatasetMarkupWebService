@@ -1,12 +1,13 @@
+from pathlib import Path
+
 from fastapi import APIRouter, UploadFile, File, HTTPException
 
 from app.application.services.file_processing_service import FileProcessingService
 
-from pathlib import Path
-
 BASE_DIR = Path(__file__).parent.parent.parent
 
 router = APIRouter()
+
 
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...)):

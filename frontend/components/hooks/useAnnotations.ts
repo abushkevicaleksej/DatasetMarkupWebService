@@ -1,4 +1,3 @@
-
 import { useContext } from 'react';
 import { AnnotationsContext } from '../workspace/AnnotationsContext';
 

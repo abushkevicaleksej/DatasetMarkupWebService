@@ -6,9 +6,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routers import create_api_router
 from app.infrastructure.database import create_tables
 
+
 create_tables()
 
+
 app = FastAPI(title="Dataset Markup Web Service")
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,13 +21,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 api_router = create_api_router()
 
+
 app.include_router(api_router)
+
 
 @app.get("/", tags=["root"])
 async def root() -> dict:
     return {"message": "Welcome to Dataset Markup Web Service"}
+
 
 if __name__ == "__main__":
     import uvicorn

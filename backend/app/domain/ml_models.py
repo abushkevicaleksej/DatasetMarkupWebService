@@ -6,6 +6,7 @@ from sqlalchemy.orm import relationship
 
 from app.domain.models import Base
 
+
 class MLModel(Base):
     __tablename__ = 'ml_models'
 

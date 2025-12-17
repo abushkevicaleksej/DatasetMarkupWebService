@@ -8,9 +8,11 @@ class CleanupService:
     def __init__(self):
         self.temp_dirs: List[Path] = []
     
+
     def register_temp_dir(self, temp_dir: Path):
         self.temp_dirs.append(temp_dir)
     
+
     async def cleanup_temp_dirs(self):
         for temp_dir in self.temp_dirs:
             if temp_dir.exists():
@@ -24,8 +26,10 @@ class CleanupService:
         
         self.temp_dirs.clear()
     
+
     def _remove_directory(self, path: Path):
         if path.exists():
             shutil.rmtree(path)
+
 
 cleanup_service = CleanupService()

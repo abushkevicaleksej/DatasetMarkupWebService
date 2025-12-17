@@ -191,7 +191,6 @@ export function Workspace() {
   return (
     <AnnotationsProvider>
       <div className="h-[calc(100vh-8rem)] flex flex-col">
-
         <div className="flex-1 flex gap-4 p-4 overflow-hidden">
           <WorkspaceToolbar 
             activeTool={activeTool}
@@ -228,7 +227,14 @@ export function Workspace() {
           onFileChange={handleFileChange}
         />
 
-        
+        <SaveTaskForm
+          isOpen={showSaveForm}
+          onClose={() => setShowSaveForm(false)}
+          onSave={handleSaveTask}
+          fileIds={fileIds}
+          loading={savingTask}
+        />
+
         <ExportTaskDialog
           isOpen={isExportDialogOpen}
           onClose={() => setIsExportDialogOpen(false)}

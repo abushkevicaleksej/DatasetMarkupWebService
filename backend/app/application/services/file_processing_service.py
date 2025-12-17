@@ -20,6 +20,7 @@ class FileProcessingService:
         self.content_extractor = ContentExtractor()
         self.image_processor = ImageProcessor()
     
+
     async def process_file(self, file_content: bytes, original_filename: str) -> ProcessingResult:
         import time
         start_time = time.time()
@@ -57,6 +58,7 @@ class FileProcessingService:
         finally:
             await self._cleanup_temp_dirs(temp_dirs_to_cleanup)
     
+
     async def _process_with_extraction(self, file_path: Path, original_filename: str, 
                                     start_time: float, temp_dirs_to_cleanup: list) -> ProcessingResult:
         
@@ -101,6 +103,7 @@ class FileProcessingService:
             processing_time=processing_time
         )
     
+
     async def _process_direct(self, file_path: Path, original_filename: str, start_time: float) -> ProcessingResult:
         
         if not self.image_processor.can_process(original_filename):
@@ -134,6 +137,7 @@ class FileProcessingService:
             processing_time=processing_time
         )
     
+
     async def _save_files_to_db_and_storage(self, file_infos: List[FileInfo], 
                                           source_file_path: Path, original_filename: str) -> List[FileInfo]:
         db = next(get_db())
@@ -161,6 +165,7 @@ class FileProcessingService:
         
         return processed_files
     
+
     async def _cleanup_temp_dirs(self, temp_dirs: List[Path]):
         for temp_dir in temp_dirs:
             if temp_dir and temp_dir.exists():
@@ -172,6 +177,7 @@ class FileProcessingService:
                 except Exception as e:
                     print(f"Error cleaning up {temp_dir}: {e}")
     
+
     def _remove_directory(self, path: Path):
         import shutil
         if path.exists():
