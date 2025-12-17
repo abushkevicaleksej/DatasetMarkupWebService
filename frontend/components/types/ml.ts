@@ -25,6 +25,19 @@ export interface PredictionResponse {
   total_predictions: number;
 }
 
+export interface OnlineLearningRequest {
+  model_id: string;
+  task_id: string;
+  epochs: number;
+  batch_size: number;
+  learning_rate: number;
+}
+
+export interface OnlineLearningResponse {
+  session_id: string;
+  status: string;
+}
+
 // Используем тот же базовый URL, что и в Workspace.tsx
 const API_BASE_URL = 'http://localhost:8000/api/routes'; 
 
@@ -49,6 +62,19 @@ export const mlApi = {
       throw new Error(error.detail || 'Prediction failed');
     }
 
+    return response.json();
+  },
+   async train (data: OnlineLearningRequest): Promise<OnlineLearningResponse> {
+    const response = await fetch('http://localhost:8000/api/routes/online-learning', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Training request failed');
+    }
     return response.json();
   }
 };

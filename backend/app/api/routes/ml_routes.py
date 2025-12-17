@@ -10,6 +10,7 @@ from app.domain.ml_schemas import (
 )
 from app.infrastructure.database import get_db
 from app.application.services.yolo_service import yolo_service
+from app.application.services.export_service import ExportService
 from app.infrastructure.repositories.ml_model_repository import MLModelRepository, PredictionRepository, TrainingSessionRepository
 from app.infrastructure.repositories.file_repository import FileRepository
 from app.infrastructure.repositories.annotation_repository import AnnotationRepository
@@ -136,21 +137,36 @@ async def start_online_learning(
         learning_request: OnlineLearningRequest,
         background_tasks: BackgroundTasks,
         db: Session = Depends(get_db)
-):
+):  
+    import uuid
+    session_id = str(uuid.uuid4())
+    
     try:
-        session_id = await yolo_service.online_learning(
-            learning_request.model_id,
-            learning_request.task_id,
-            learning_request.epochs,
-            learning_request.batch_size,
-            learning_request.learning_rate
+        export_service = ExportService(db)
+        
+        base_train_dir = Path("training_data") / session_id
+        
+        print(f"Exporting data for session {session_id}...")
+        yaml_path = export_service.prepare_dataset_for_training(
+            learning_request.task_id, 
+            str(base_train_dir)
         )
-
-        return {"session_id": session_id, "status": "started"}
-
+        print(f"Data exported to {yaml_path}")
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Online learning failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to prepare dataset: {str(e)}")
 
+    background_tasks.add_task(
+        yolo_service.run_training, 
+        model_path='yolov8n.pt',   
+        yaml_path=yaml_path,
+        epochs=learning_request.epochs,
+        batch_size=learning_request.batch_size,
+        lr=learning_request.learning_rate,
+        session_id=session_id
+    )
+
+    return {"session_id": session_id, "status": "started"}
 
 @router.get("/training-sessions/{session_id}", response_model=TrainingSessionResponse)
 async def get_training_session(session_id: str, db: Session = Depends(get_db)):
