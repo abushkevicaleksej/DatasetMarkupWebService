@@ -17,13 +17,8 @@ class ExportService:
         self.task_repo = TaskRepository(db)
         self.file_repo = FileRepository(db)
 
-<<<<<<< HEAD
     def _prepare_yolo_structure(self, task_id: str, output_dir: Path) -> str:
 
-=======
-
-    def export_task_yolo(self, task_id: str) -> str:
->>>>>>> f91211f00c7e26522dc060e1b1ba38f2153fd193
         task = self.task_repo.get_by_id(task_id)
         if not task:
             raise ValueError("Task not found")
