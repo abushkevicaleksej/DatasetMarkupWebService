@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  sam2-api:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - sam_weights:/app/weights
+
+volumes:
+  sam_weights:
