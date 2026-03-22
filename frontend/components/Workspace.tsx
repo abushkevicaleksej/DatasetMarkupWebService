@@ -40,7 +40,7 @@ export function Workspace() {
   const [files, setFiles] = useState<WorkspaceFile[]>([]);
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTool, setActiveTool] = useState<'select' | 'rectangle' | 'erase' | 'move'>('select');
+  const [activeTool, setActiveTool] = useState<'select' | 'rectangle' | 'erase' | 'move' | 'auto'>('select');
   const [showSaveForm, setShowSaveForm] = useState(false);
   const [savingTask, setSavingTask] = useState(false);
   const [currentTask, setCurrentTask] = useState<TaskResponse | null>(null);

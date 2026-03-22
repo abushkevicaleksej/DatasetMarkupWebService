@@ -4,9 +4,14 @@ from typing import List, Dict, Any, Optional
 
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, HTTPException, Depends
+import httpx
+from PIL import Image
 
 from app.application.services.annotation_service import AnnotationService
 from app.infrastructure.database import get_db
+
+from app.infrastructure.repositories.file_repository import FileRepository
+from app.infrastructure.repositories.annotation_repository import AnnotationRepository
 
 router = APIRouter()
 annotation_service = AnnotationService()
@@ -30,6 +35,12 @@ class AnnotationCreateRequest(BaseModel):
     file_id: str
     task_id: str
     bounding_boxes: List[BoundingBoxCreate]
+
+class SmartBBoxRequest(BaseModel):
+    file_id: str
+    task_id: str
+    x: int
+    y: int
 
 @router.post("/annotations")
 async def create_annotation(annotation_data: AnnotationCreateRequest, db: Session = Depends(get_db)):
@@ -156,3 +167,76 @@ async def delete_bounding_box(annotation_id: str, bbox_id: str, db: Session = De
         return {"message": "Bounding box deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+
+@router.post("/annotations/smart-bbox")
+async def create_smart_annotation(
+    data: SmartBBoxRequest, 
+    db: Session = Depends(get_db)
+):
+    
+    from app.infrastructure.repositories.file_repository import FileRepository
+    from app.infrastructure.repositories.annotation_repository import AnnotationRepository
+    
+    file_repo = FileRepository(db)
+    file_info = file_repo.get_by_id(data.file_id)
+    if not file_info:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    with Image.open(file_info.file_path) as img:
+        img_w, img_h = img.size
+
+    SAM2_URL = "http://localhost:5000/annotate"
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            with open(file_info.file_path, "rb") as f:
+                files = {"file": (file_info.original_filename, f, file_info.mime_type)}
+                payload = {"x": data.x, "y": data.y}
+                sam_response = await client.post(SAM2_URL, files=files, data=payload)
+            
+            if sam_response.status_code != 200:
+                raise HTTPException(status_code=500, detail=f"SAM2 error: {sam_response.text}")
+            
+            result = sam_response.json()
+            
+            if not result.get("bbox"):
+                raise HTTPException(status_code=400, detail="Object not detected")
+
+            x_min, y_min, x_max, y_max = result["bbox"]
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI Service error: {str(e)}")
+
+    norm_x = x_min / img_w
+    norm_y = y_min / img_h
+    norm_w = (x_max - x_min) / img_w
+    norm_h = (y_max - y_min) / img_h
+
+    annotation_repo = AnnotationRepository(db)
+    bbox_data = [{
+        "x": norm_x,
+        "y": norm_y,
+        "width": norm_w,
+        "height": norm_h,
+        "label": "auto-detected",
+        "confidence": result.get("score", 1.0)
+    }]
+    
+    new_ann = annotation_repo.create_annotation(
+        file_id=data.file_id,
+        task_id=data.task_id,
+        bounding_boxes=bbox_data
+    )
+    
+    created_bbox = new_ann.bounding_boxes[0]
+    return {
+        "id": str(created_bbox.id),
+        "x": norm_x,
+        "y": norm_y,
+        "width": norm_w,
+        "height": norm_h,
+        "label": "auto-detected",
+        "color": "#3B82F6",
+        "isSelected": False
+    }

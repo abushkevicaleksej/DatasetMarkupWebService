@@ -15,9 +15,7 @@ from app.infrastructure.repositories.ml_model_repository import MLModelRepositor
 from app.infrastructure.repositories.file_repository import FileRepository
 from app.infrastructure.repositories.annotation_repository import AnnotationRepository
 
-
 router = APIRouter()
-
 
 @router.get("/models", response_model=List[MLModelResponse])
 async def get_models(db: Session = Depends(get_db)):

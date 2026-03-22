@@ -8,7 +8,6 @@ BASE_DIR = Path(__file__).parent.parent.parent
 
 router = APIRouter()
 
-
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     file_content = await file.read()

@@ -8,10 +8,11 @@ import {
   Save,
   Eye,
   BrainIcon,
-  DownloadIcon
+  DownloadIcon,
+  Pointer
 } from 'lucide-react';
 
-type Tool = 'select' | 'rectangle' | 'erase' | 'move';
+type Tool = 'select' | 'rectangle' | 'erase' | 'move' | 'auto';
 
 interface WorkspaceToolbarProps {
   activeTool: Tool;
@@ -35,6 +36,7 @@ export function WorkspaceToolbar({
   const tools = [
     { id: 'select' as Tool, icon: MousePointer2, label: 'Выделение' },
     { id: 'rectangle' as Tool, icon: Square, label: 'Ограничивающая рамка' },
+    { id: 'auto' as Tool, icon: Pointer, label: 'Автовыделение' },
     { id: 'erase' as Tool, icon: Eraser, label: 'Стереть' },
     { id: 'move' as Tool, icon: Move, label: 'Навигация' },
   ];

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAnnotations } from '../hooks/useAnnotations';
 import { BoundingBox } from '../types/annotations';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface WorkspaceFile {
   id: string;
@@ -15,7 +16,7 @@ interface WorkspaceFile {
 
 interface WorkspaceCanvasProps {
   currentFile: WorkspaceFile | null;
-  activeTool: 'select' | 'rectangle' | 'erase' | 'move';
+  activeTool: 'select' | 'rectangle' | 'erase' | 'move' | 'auto';
   taskId?: string | null;
 }
 
@@ -37,7 +38,7 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
   const [activeHandle, setActiveHandle] = useState<ResizeHandle | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-
+  const [isAutoProcessing, setIsAutoProcessing] = useState(false);
   const {
     annotations,
     currentBoundingBox,
@@ -157,8 +158,40 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     return null;
   };
 
+  const handleAutoAnnotation = async (normPoint: { x: number, y: number }) => {
+    if (!currentFile || !taskId) return;
+
+    setIsAutoProcessing(true);
+    try {
+      const pixelX = Math.round(normPoint.x * imgDimensions.width);
+      const pixelY = Math.round(normPoint.y * imgDimensions.height);
+
+      const response = await fetch('http://localhost:8000/api/routes/annotations/smart-bbox', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file_id: currentFile.id,
+          task_id: taskId,
+          x: pixelX,
+          y: pixelY
+        })
+      });
+
+      if (response.ok) {
+        await loadAnnotationsForFile(currentFile.id);
+      } else {
+        const error = await response.json();
+        console.error("Ошибка детекции:", error.detail);
+      }
+    } catch (err) {
+      console.error('Ошибка при запросе к SAM2:', err);
+    } finally {
+      setIsAutoProcessing(false);
+    }
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || isAutoProcessing) return;
     e.preventDefault();
 
     const normPoint = getNormalizedPoint(e.clientX, e.clientY);
@@ -215,6 +248,11 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
         color: '#3B82F6',
         isSelected: true
       });
+    }
+
+    if (activeTool === 'auto' && e.button === 0) {
+      handleAutoAnnotation(normPoint);
+      return;
     }
   };
 
@@ -357,7 +395,7 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     setInteractionMode('idle');
     setInitialBBox(null);
     setActiveHandle(null);
-    setIsDragging(false); 
+    setIsDrawing(false);
   };
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -450,6 +488,14 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
 
   return (
     <Card className="flex-1 flex flex-col bg-muted/30 overflow-hidden relative">
+      {isAutoProcessing && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/40 backdrop-blur-[1px]">
+          <div className="bg-white p-4 rounded-lg shadow-lg flex flex-col items-center gap-2">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            <span className="text-sm font-medium">SAM 2 обрабатывает объект...</span>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between p-2 border-b bg-background z-10">
         <div className="text-xs text-muted-foreground">
           {Math.round(scale * 100)}% | {bboxes.length} boxes
