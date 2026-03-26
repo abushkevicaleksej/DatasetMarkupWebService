@@ -23,10 +23,8 @@ class YOLOService:
         try:
             model = YOLO(model_path)
             self.model_cache[model_path] = model
-            print(f"Model loaded successfully: {model_path}")
             return model
         except Exception as e:
-            print(f"Error loading model {model_path}: {e}")
             raise
 
     async def predict_single_image(self, model_id: str, file_path: Path,
@@ -94,7 +92,6 @@ class YOLOService:
                     total_predictions=len(predictions)
                 )
             except Exception as e:
-                print(f"Error processing {file_path}: {e}")
                 continue
 
         return results
@@ -137,11 +134,8 @@ class YOLOService:
 
             model = self.load_model(model_info.model_path)
 
-            # Дообучаем модель
-            # Здесь будет логика дообучения YOLO на новых данных
-
             results = model.train(
-                data='coco128.yaml',  # Нужно создать свой конфиг с нашими данными
+                data='coco128.yaml',
                 epochs=epochs,
                 batch=batch_size,
                 lr0=learning_rate,
@@ -178,7 +172,6 @@ class YOLOService:
             yolo_annotations = []
             for bbox in annotation.bounding_boxes:
                 class_id = self._get_class_id(bbox.label)
-                # Конвертируем из top_left (база) в center (для YOLO)
                 cnt_x = bbox.x + (bbox.width / 2)
                 cnt_y = bbox.y + (bbox.height / 2)
                 yolo_bbox = f"{class_id} {cnt_x} {cnt_y} {bbox.width} {bbox.height}"

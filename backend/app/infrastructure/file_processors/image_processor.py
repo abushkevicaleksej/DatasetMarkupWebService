@@ -94,8 +94,6 @@ class ImageProcessor(ImageProcessorInterface):
             with Image.open(file_path) as img:
                 return img.size
         except ImportError:
-            print("PIL not available, cannot get image dimensions")
             return None, None
         except Exception as e:
-            print(f"Error getting image dimensions: {e}")
             return None, None

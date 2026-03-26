@@ -67,9 +67,7 @@ def initialize_predefined_models():
         if not model_exists:
             try:
                 model_repo.create_model(model_data)
-                print(f"Created model: {model_data['name']}")
             except Exception as e:
-                print(f"Error creating model {model_data['name']}: {e}")
 
 
 initialize_predefined_models()

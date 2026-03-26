@@ -36,9 +36,9 @@ class ExportService:
         labels_dir.mkdir(parents=True, exist_ok=True)
 
         yaml_content = {
-            'path': str(output_dir.absolute()), # Базовый путь (важно для обучения)
+            'path': str(output_dir.absolute()),
             'train': 'images',
-            'val': 'images',    # В рамках MVP используем то же самое для валидации
+            'val': 'images',
             'names': {idx: label for idx, label in enumerate(unique_labels)}
         }
 

@@ -125,7 +125,6 @@ async def predict(prediction_request: PredictionRequest, db: Session = Depends(g
                 ))
 
             except Exception as e:
-                print(f"Error processing file {file_info.id}: {e}")
                 continue
 
         return results
@@ -148,12 +147,10 @@ async def start_online_learning(
         
         base_train_dir = Path("training_data") / session_id
         
-        print(f"Exporting data for session {session_id}...")
         yaml_path = export_service.prepare_dataset_for_training(
             learning_request.task_id, 
             str(base_train_dir)
         )
-        print(f"Data exported to {yaml_path}")
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to prepare dataset: {str(e)}")
