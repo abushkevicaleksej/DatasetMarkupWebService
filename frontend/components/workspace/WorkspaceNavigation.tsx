@@ -18,18 +18,27 @@ interface WorkspaceNavigationProps {
 export function WorkspaceNavigation({ files, currentFileId, onFileChange }: WorkspaceNavigationProps) {
   const currentIndex = files.findIndex(file => file.id === currentFileId);
   const totalFiles = files.length;
+  const hasValidFile = currentIndex !== -1;
 
   const goToPrevious = () => {
     if (files.length === 0) return;
-    
-    const newIndex = currentIndex > 0 ? currentIndex - 1 : files.length - 1;
+    let newIndex: number;
+    if (!hasValidFile) {
+      newIndex = files.length - 1;
+    } else {
+      newIndex = currentIndex > 0 ? currentIndex - 1 : files.length - 1;
+    }
     onFileChange(files[newIndex].id);
   };
 
   const goToNext = () => {
     if (files.length === 0) return;
-    
-    const newIndex = currentIndex < files.length - 1 ? currentIndex + 1 : 0;
+    let newIndex: number;
+    if (!hasValidFile) {
+      newIndex = 0;
+    } else {
+      newIndex = currentIndex < files.length - 1 ? currentIndex + 1 : 0;
+    }
     onFileChange(files[newIndex].id);
   };
 
@@ -41,11 +50,9 @@ export function WorkspaceNavigation({ files, currentFileId, onFileChange }: Work
             <ChevronLeft className="w-4 h-4 mr-1" />
             Назад
           </Button>
-          
           <div className="flex items-center gap-2 min-w-32 justify-center">
             <span className="text-muted-foreground">Нет файлов</span>
           </div>
-          
           <Button variant="outline" disabled className="min-w-24">
             Вперед
             <ChevronRight className="w-4 h-4 ml-1" />
@@ -55,7 +62,7 @@ export function WorkspaceNavigation({ files, currentFileId, onFileChange }: Work
     );
   }
 
-  const currentFile = files[currentIndex];
+  const currentFile = hasValidFile ? files[currentIndex] : null;
 
   return (
     <div className="border-t bg-card px-4 py-3">

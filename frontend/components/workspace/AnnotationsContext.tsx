@@ -28,44 +28,57 @@ export function AnnotationsProvider({ children }: { children: ReactNode }) {
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentBoundingBox, setCurrentBoundingBox] = useState<Partial<BoundingBox> | null>(null);
 
-  const loadAnnotationsForFile = useCallback(async (fileId: string) => {
-    try {
-      const response = await fetch(`http://localhost:8000/api/routes/annotations/file/${fileId}`);
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          setAnnotations([]);
-          return;
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
+ const loadAnnotationsForFile = useCallback(async (fileId: string) => {
+  try {
+    const response = await fetch(`http://localhost:8000/api/routes/annotations/file/${fileId}`);
+    if (!response.ok) {
+      if (response.status === 404) {
+        setAnnotations([]);
+        return;
       }
-      
-      const data = await response.json();
-      
-      const formattedAnnotations: Annotation[] = data.map((item: any) => ({
-        id: item.id,
-        file_id: item.file_id,
-        task_id: item.task_id,
-        bounding_boxes: item.bounding_boxes.map((bbox: any) => ({
-          id: bbox.id,
-          x: bbox.x,
-          y: bbox.y,
-          width: bbox.width,
-          height: bbox.height,
-          label: bbox.label,
-          confidence: bbox.confidence,
-          color: '#3B82F6',
-          isSelected: false
-        })),
-        created_at: item.created_at
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    const mergedMap = new Map<string, Annotation>();
+    console.log(mergedMap)
+    
+    data.forEach((item: any) => {
+      const existing = mergedMap.get(item.file_id);
+      const boxes = item.bounding_boxes.map((bbox: any) => ({
+        id: bbox.id,
+        x: bbox.x,
+        y: bbox.y,
+        width: bbox.width,
+        height: bbox.height,
+        label: bbox.label,
+        confidence: bbox.confidence,
+        color: '#3B82F6',
+        isSelected: false
       }));
       
-      setAnnotations(formattedAnnotations);
-    } catch (error) {
-      console.error('Error loading annotations:', error);
-      setAnnotations([]);
-    }
-  }, []);
+      if (existing) {
+        existing.bounding_boxes.push(...boxes);
+      } else {
+        mergedMap.set(item.file_id, {
+          id: item.id,
+          file_id: item.file_id,
+          task_id: item.task_id,
+          bounding_boxes: boxes,
+          created_at: item.created_at
+        });
+      }
+    });
+    
+    const formattedAnnotations = Array.from(mergedMap.values());
+    setAnnotations(formattedAnnotations);
+    console.log('Loaded annotations:', formattedAnnotations);
+  } catch (error) {
+    console.error('Error loading annotations:', error);
+    setAnnotations([]);
+  }
+}, []);
 
   const finishDrawing = useCallback(async (fileId: string, taskId?: string) => {
     if (!currentBoundingBox || 
@@ -200,7 +213,7 @@ export function AnnotationsProvider({ children }: { children: ReactNode }) {
       }
 
       if (annotationId) {
-        await fetch(`http://localhost:8000/api/routes/annotations/${annotationId}/bbox/${bboxId}`, {
+        await fetch(`http://localhost:8000/api/routes/annotations/${annotationId}`, {
           method: 'DELETE',
         });
       }

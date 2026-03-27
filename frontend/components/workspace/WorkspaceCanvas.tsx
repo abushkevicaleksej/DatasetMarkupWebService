@@ -89,6 +89,7 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     if (currentFile?.id) {
       loadAnnotationsForFile(currentFile.id);
     }
+    console.log
   }, [currentFile?.id, loadAnnotationsForFile]);
 
 
