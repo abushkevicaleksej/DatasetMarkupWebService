@@ -28,14 +28,12 @@ class FileProcessingService:
         file_id = uuid4()
         file_extension = Path(original_filename).suffix
         saved_file_path = self.upload_dir / f"{file_id}{file_extension}"
-        
         with open(saved_file_path, "wb") as f:
             f.write(file_content)
         
         temp_dirs_to_cleanup = []
-        
         try:
-            if self.content_extractor.can_extract(original_filename):
+            if self.content_extractor.can_extract(original_filename):        
                 return await self._process_with_extraction(
                     saved_file_path, original_filename, start_time, temp_dirs_to_cleanup
                 )

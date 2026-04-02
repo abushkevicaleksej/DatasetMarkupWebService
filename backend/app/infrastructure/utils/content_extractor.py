@@ -37,7 +37,6 @@ class ContentExtractor:
 
     async def extract_content(self, file_path: Path, original_filename: str) -> Tuple[List[Path], Path]:
         extractor = self.get_extractor(original_filename)
-        
         temp_dir = Path(tempfile.mkdtemp(prefix=f"extract_{original_filename}_"))
         
         try:

@@ -16,6 +16,7 @@ async def upload_file(file: UploadFile = File(...)):
 
     try:
         result = await processing_service.process_file(file_content, file.filename)
+        print(result.success)
         if not result.success:
             raise HTTPException(
                 status_code=400,
