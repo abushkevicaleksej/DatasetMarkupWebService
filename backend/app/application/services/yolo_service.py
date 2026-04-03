@@ -15,6 +15,7 @@ class YOLOService:
     def __init__(self):
         self.loaded_models: Dict[str, Any] = {}
         self.model_cache = {}
+        self.runs_dir = Path("runs") 
 
     def load_model(self, model_path: str, config_path: Optional[str] = None) -> Any:
         if model_path in self.model_cache:
@@ -26,6 +27,33 @@ class YOLOService:
             return model
         except Exception as e:
             raise
+
+    def run_training(self, model_path: str, yaml_path: str, epochs: int, batch_size: int, lr: float, session_id: str):
+
+        try:
+            print(f"Starting YOLO training for session {session_id}")
+            print(f"Config: {yaml_path}")
+            
+            model = YOLO(model_path) 
+
+            results = model.train(
+                data=yaml_path,
+                epochs=epochs,
+                batch=batch_size,
+                lr0=lr,
+                imgsz=640,
+                project=str(self.runs_dir),
+                name=f"train_{session_id}",
+                exist_ok=True,
+                verbose=True
+            )
+            
+            print(f"Training finished successfully. Saved to: {model.trainer.save_dir}")
+            
+            
+        except Exception as e:
+            print(f"Training failed for session {session_id}: {e}")
+
 
     async def predict_single_image(self, model_id: str, file_path: Path,
                                    confidence_threshold: float = 0.5) -> List[BoundingBoxPrediction]:

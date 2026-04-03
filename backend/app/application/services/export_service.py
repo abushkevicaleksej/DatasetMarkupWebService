@@ -5,6 +5,7 @@ import zipfile
 import yaml
 from pathlib import Path
 from typing import List, Dict, Optional
+from collections import defaultdict
 
 from sqlalchemy.orm import Session
 
@@ -23,11 +24,15 @@ class ExportService:
         if not task:
             raise ValueError("Task not found")
 
-        unique_labels = sorted(list(set(
-            bbox.label 
-            for annotation in task.annotations 
-            for bbox in annotation.bounding_boxes
-        )))
+        bboxes_by_file = defaultdict(list)
+        for ann in task.annotations:
+            bboxes_by_file[ann.file_id].extend(ann.bounding_boxes)
+
+        unique_labels = sorted({
+            bbox.label
+            for bboxes in bboxes_by_file.values()
+            for bbox in bboxes
+        })
         label_map = {label: idx for idx, label in enumerate(unique_labels)}
 
         images_dir = output_dir / "images"
@@ -41,7 +46,6 @@ class ExportService:
             'val': 'images',
             'names': {idx: label for idx, label in enumerate(unique_labels)}
         }
-
         yaml_path = output_dir / "data.yaml"
         with open(yaml_path, "w", encoding="utf-8") as f:
             yaml.dump(yaml_content, f, sort_keys=False)
@@ -50,13 +54,11 @@ class ExportService:
             for label in unique_labels:
                 f.write(f"{label}\n")
 
-        annotations_by_file = {ann.file_id: ann for ann in task.annotations}
-
         for file in task.files:
             src_path = Path(file.file_path)
             if not src_path.exists():
                 continue
-            
+
             safe_filename = Path(file.original_filename).name
             dst_image_path = images_dir / safe_filename
             shutil.copy2(src_path, dst_image_path)
@@ -64,31 +66,26 @@ class ExportService:
             label_filename = safe_filename.rsplit('.', 1)[0] + ".txt"
             label_path = labels_dir / label_filename
 
-            annotation = annotations_by_file.get(file.id)
-            
+            bboxes = bboxes_by_file.get(file.id, [])
             with open(label_path, "w", encoding="utf-8") as lf:
-                if annotation and annotation.bounding_boxes:
-                    for bbox in annotation.bounding_boxes:
-                        class_id = label_map.get(bbox.label)
-                        if class_id is None:
+                for bbox in bboxes:
+                    class_id = label_map.get(bbox.label)
+                    if class_id is None:
+                        continue
+
+                    is_normalized = bbox.x <= 1.0 and bbox.width <= 1.0
+                    if is_normalized:
+                        cx, cy, w, h = bbox.x, bbox.y, bbox.width, bbox.height
+                    else:
+                        if not file.width or not file.height:
                             continue
+                        w = bbox.width / file.width
+                        h = bbox.height / file.height
+                        cx = (bbox.x + (bbox.width / 2)) / file.width
+                        cy = (bbox.y + (bbox.height / 2)) / file.height
 
+                    lf.write(f"{class_id} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}\n")
 
-                        is_normalized = bbox.x <= 1.0 and bbox.width <= 1.0
-                        
-                        if is_normalized:
-                            cx, cy, w, h = bbox.x, bbox.y, bbox.width, bbox.height
-                        else:
-                            if not file.width or not file.height:
-                                continue 
-                            
-                            w = bbox.width / file.width
-                            h = bbox.height / file.height
-                            cx = (bbox.x + (bbox.width / 2)) / file.width
-                            cy = (bbox.y + (bbox.height / 2)) / file.height
-
-                        lf.write(f"{class_id} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}\n")
-        
         return str(yaml_path)
 
     def export_task_yolo(self, task_id: str) -> str:
