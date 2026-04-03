@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Upload, FileIcon, X, Loader2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
 export function FileUpload() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -9,6 +10,8 @@ export function FileUpload() {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const taskId = searchParams.get('taskId');
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -36,6 +39,7 @@ export function FileUpload() {
       const uploadPromises = selectedFiles.map(async (file, index) => {
         const formData = new FormData();
         formData.append('file', file);
+        if (taskId) formData.append('task_id', taskId); 
 
         const response = await fetch('http://localhost:8000/api/routes/upload', {
           method: 'POST',
@@ -60,7 +64,7 @@ export function FileUpload() {
       
       console.log('Все файлы успешно загружены:', results);
       
-      const redirectUrl = results[0]?.redirect_url || '/workspace';
+      const redirectUrl = taskId ? `/workspace?taskId=${taskId}` : '/workspace';
       navigate(redirectUrl);
 
     } catch (err) {
@@ -85,6 +89,7 @@ export function FileUpload() {
       const file = selectedFiles[0];
       const formData = new FormData();
       formData.append('file', file);
+      if (taskId) formData.append('task_id', taskId); 
 
       const response = await fetch('http://localhost:8000/api/routes/upload', {
         method: 'POST',
@@ -99,9 +104,10 @@ export function FileUpload() {
       }
 
       const result = await response.json();
+      if (taskId) formData.append('task_id', taskId);
       console.log('Файл успешно загружен:', result);
 
-      const redirectUrl = result.redirect_url || '/workspace';
+      const redirectUrl = taskId ? `/workspace?taskId=${taskId}` : '/workspace';
       navigate(redirectUrl);
 
     } catch (err) {

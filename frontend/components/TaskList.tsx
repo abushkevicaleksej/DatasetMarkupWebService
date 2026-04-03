@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { ListTodo, Clock, CheckCircle2, Trash2, Loader2, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { SaveTaskForm } from './workspace/SaveTaskForm';
 
 interface Task {
   id: string;
@@ -36,6 +37,24 @@ export function TaskList() {
   const [error, setError] = useState<string | null>(null);
   const [deletingTasks, setDeletingTasks] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
+  const [showCreateTaskForm, setShowCreateTaskForm] = useState(false);
+
+  const handleCreateTask = async (taskData: { name: string; description?: string; file_ids: string[] }) => {
+    try {
+      const response = await fetch('http://localhost:8000/api/routes/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(taskData),
+      });
+      if (!response.ok) throw new Error('Ошибка создания задачи');
+      const task: Task = await response.json();
+      setShowCreateTaskForm(false);
+      navigate(`/upload?taskId=${task.id}`);
+    } catch (err) {
+      console.error(err);
+      alert('Не удалось создать задачу');
+    }
+  };
 
   const fetchTasks = async () => {
     try {
@@ -123,10 +142,17 @@ export function TaskList() {
             <div>
               <h1 className="mb-2 text-3xl font-bold">Задачи</h1>
             </div>
-            <Button onClick={() => navigate('/upload')}>
+            <Button onClick={() => setShowCreateTaskForm(true)}>
               <ListTodo className="w-4 h-4 mr-2" />
               Новая задача
             </Button>
+            <SaveTaskForm
+              isOpen={showCreateTaskForm}
+              onClose={() => setShowCreateTaskForm(false)}
+              onSave={handleCreateTask}
+              fileIds={[]}
+              loading={false}
+            />
           </div>
 
           {tasks.length === 0 ? (

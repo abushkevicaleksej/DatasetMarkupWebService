@@ -30,9 +30,11 @@ class File(Base):
     height = Column(Integer, nullable=True)
     duration = Column(Float, nullable=True)
     extracted_from = Column(String(36), ForeignKey('files.id'), nullable=True)
+    task_id = Column(String(36), ForeignKey('tasks.id'), nullable=True)   # ← прямой FK
+    
+    task = relationship("Task", back_populates="files")
     
     annotations = relationship("Annotation", back_populates="file", cascade="all, delete-orphan")
-    tasks = relationship("Task", secondary=task_files, back_populates="files")
     children = relationship("File", backref="parent", remote_side=[id])
     
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -47,7 +49,8 @@ class Task(Base):
     description = Column(Text, nullable=True)
     status = Column(String(50), default='in progress')
     
-    files = relationship("File", secondary=task_files, back_populates="tasks")
+    files = relationship("File", back_populates="task")
+    
     annotations = relationship("Annotation", back_populates="task", cascade="all, delete-orphan")
     
     created_at = Column(DateTime, default=datetime.utcnow)

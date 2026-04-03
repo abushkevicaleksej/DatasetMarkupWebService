@@ -44,7 +44,6 @@ async def get_tasks(db: Session = Depends(get_db)):
     tasks = task_repository.get_all()
 
     response = []
-
     for task in tasks:
         response.append(
             TaskResponse(
@@ -89,28 +88,23 @@ async def create_task(task_data: TaskCreateRequest, db: Session = Depends(get_db
 
 @router.get("/api/tasks/{task_id}/files")
 async def get_task_files(task_id: str, db: Session = Depends(get_db)):
-    from app.infrastructure.repositories.task_repository import TaskRepository
-    try:
-        task_repository = TaskRepository(db)
-        task = task_repository.get_by_id(task_id)
-        
-        if not task:
-            raise HTTPException(status_code=404, detail="Task not found")
-        
-        files = task.files
-        
-        return [
-            {
-                "id": file.id,
-                "original_filename": file.original_filename,
-                "file_size": file.file_size,
-                "file_path": file.file_path,
-                "mime_type": file.mime_type
-            }
-            for file in files
-        ]
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    from app.domain.models import File, Task
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    files = db.query(File).filter(File.task_id == task_id).all()
+    
+    return [
+        {
+            "id": file.id,
+            "original_filename": file.original_filename,
+            "file_size": file.file_size,
+            "file_path": file.file_path,
+            "mime_type": file.mime_type
+        }
+        for file in files
+    ]
 
 
 @router.get("/api/tasks/{task_id}/annotations")
