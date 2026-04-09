@@ -203,35 +203,51 @@ export function AnnotationsProvider({ children }: { children: ReactNode }) {
   }, [selectedBoundingBox, annotations]);
 
   const deleteBoundingBox = useCallback(async (bboxId: string) => {
-    try {
-      let annotationId: string | null = null;
-      for (const ann of annotations) {
-        if (ann.bounding_boxes.some(b => b.id === bboxId)) {
-          annotationId = ann.id;
-          break;
-        }
+  try {
+    let targetAnnotation: Annotation | undefined;
+    let targetBbox: BoundingBox | undefined;
+    for (const ann of annotations) {
+      const bbox = ann.bounding_boxes.find(b => b.id === bboxId);
+      if (bbox) {
+        targetAnnotation = ann;
+        targetBbox = bbox;
+        break;
       }
-
-      if (annotationId) {
-        await fetch(`http://localhost:8000/api/routes/annotations/${annotationId}`, {
-          method: 'DELETE',
-        });
-      }
-
-      setAnnotations(prev => 
-        prev.map(ann => ({
-          ...ann,
-          bounding_boxes: ann.bounding_boxes.filter(b => b.id !== bboxId)
-        })).filter(ann => ann.bounding_boxes.length > 0)
-      );
-
-      if (selectedBoundingBox?.id === bboxId) {
-        setSelectedBoundingBox(null);
-      }
-    } catch (error) {
-      console.error('Error deleting bbox:', error);
     }
-  }, [annotations, selectedBoundingBox]);
+
+    if (!targetAnnotation || !targetBbox) {
+      console.warn('Bounding box not found:', bboxId);
+      return;
+    }
+
+    const response = await fetch(`http://localhost:8000/api/routes/annotations/${targetAnnotation.id}/bbox/${bboxId}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+    }
+
+    const updatedAnnotations = annotations
+      .map(ann => {
+        if (ann.id === targetAnnotation!.id) {
+          const newBoxes = ann.bounding_boxes.filter(b => b.id !== bboxId);
+          return { ...ann, bounding_boxes: newBoxes };
+        }
+        return ann;
+      })
+      .filter(ann => ann.bounding_boxes.length > 0);
+
+    setAnnotations(updatedAnnotations);
+
+    if (selectedBoundingBox?.id === bboxId) {
+      setSelectedBoundingBox(null);
+    }
+  } catch (error) {
+    console.error('Error deleting bounding box:', error);
+    alert('Не удалось удалить bounding box');
+  }
+}, [annotations, selectedBoundingBox]);
 
   const selectBoundingBox = useCallback((bbox: BoundingBox | null) => {
     setAnnotations(prev => prev.map(ann => ({

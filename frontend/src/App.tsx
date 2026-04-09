@@ -12,7 +12,7 @@ export default function App() {
         <Header />
         <main className="flex-1 min-h-0">
           <Routes>
-            <Route path="/" element={<Navigate to="/upload" replace />} />
+            <Route path="/" element={<Navigate to="/tasks" replace />} />
             <Route path="/upload" element={<FileUpload />} />
             <Route path="/workspace" element={<Workspace />} />
             <Route path="/models" element={<ModelList />} />

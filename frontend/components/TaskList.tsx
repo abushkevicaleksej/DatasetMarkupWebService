@@ -190,7 +190,7 @@ export function TaskList() {
                           <span>Создано: {new Date(task.created_at).toLocaleDateString()}</span>
                           <span>Обновлено: {new Date(task.updated_at).toLocaleDateString()}</span>
                           <span>Файлов: {task.file_count}</span>
-                          <span>Аннотаций: {task.annotation_count}</span>
+                          <span>Статус: {task.status}</span>
                         </div>
                         <div className="flex gap-2">
                           <Button 

@@ -223,7 +223,11 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
 
       if (clickedBox) {
         if (activeTool === 'erase') {
+          console.log("deleting")
+          console.log(clickedBox)
           deleteBoundingBox(clickedBox.id);
+          selectBoundingBox(null);
+          console.log(clickedBox)
           return;
         }
         selectBoundingBox(clickedBox);
