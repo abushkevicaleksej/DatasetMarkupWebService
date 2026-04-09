@@ -3,15 +3,18 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+import httpx
 
 from app.domain.ml_schemas import (
-    MLModelCreate, MLModelResponse, PredictionRequest,
+    MLModelCreate, MLModelValidate, MLModelResponse, PredictionRequest,
     PredictionResponse, OnlineLearningRequest, TrainingSessionResponse
 )
 from app.infrastructure.database import get_db
 from app.application.services.yolo_service import yolo_service
 from app.application.services.export_service import ExportService
-from app.infrastructure.repositories.ml_model_repository import MLModelRepository, PredictionRepository, TrainingSessionRepository
+from app.infrastructure.repositories.ml_model_repository import (
+    MLModelRepository, PredictionRepository, TrainingSessionRepository
+    )
 from app.infrastructure.repositories.file_repository import FileRepository
 from app.infrastructure.repositories.annotation_repository import AnnotationRepository
 
@@ -51,17 +54,34 @@ async def delete_model(model_id: str, db: Session = Depends(get_db)):
 async def create_model(model_data: MLModelCreate, db: Session = Depends(get_db)):
     model_repo = MLModelRepository(db)
 
-    print(model_repo)
     try:
         model_path = Path(model_data.model_path)
         if not model_path.exists():
             raise HTTPException(status_code=400, detail="Model file not found")
-
+        
         model = model_repo.create_model(model_data.dict())
         return model
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.post("/models/validate")
+async def validate_model(model_data: MLModelValidate, db: Session = Depends(get_db)):
+    model_path = Path(model_data.model_path)
+    if not model_path.exists():
+        raise HTTPException(status_code=400, detail="Model file not found")
+    
+    validation_url = "http://localhost:3033/validate"
+
+    async with httpx.AsyncClient() as client:
+        with open(model_path, "rb") as f:
+            files = {"model_file": f}
+            data = {"model_type": model_data.framework.value}
+            response = await client.post(validation_url, files=files, data=data)
+    
+        if response.status_code == 422:
+            raise HTTPException(status_code=400, detail=response.json())
+    
+        return response.json()
 
 @router.post("/predict", response_model=List[PredictionResponse])
 async def predict(prediction_request: PredictionRequest, db: Session = Depends(get_db)):

@@ -10,6 +10,7 @@ import { Slider } from './ui/slider';
 import { Loader2, Plus } from 'lucide-react';
 import { TagsInput } from './TagsInput';
 import { ModelType, ModelFramework, ModelFormData, InputSize } from './types/ml-types';
+import { Alert, AlertDescription } from './ui/alert';
 
 interface AddModelFormProps {
   onModelAdded: () => void;
@@ -18,6 +19,9 @@ interface AddModelFormProps {
 const defaultInputSize: InputSize = { width: 640, height: 640 };
 
 export function AddModelForm({ onModelAdded }: AddModelFormProps) {
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const [isValid, setIsValid] = useState(false);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,8 +40,51 @@ export function AddModelForm({ onModelAdded }: AddModelFormProps) {
     is_active: false,
   });
 
+  const handleValidate = async () => {
+    const path = formData.model_path.trim();
+    if (!path) {
+      setValidationMessage('Укажите путь к модели');
+      setIsValid(false);
+      return;
+    }
+    setIsValidating(true);
+    setValidationMessage(null);
+    try {
+      const response = await fetch('http://localhost:8000/api/routes/models/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          model_path: path,
+          framework: formData.framework,
+         }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        if (data.valid) {
+          setIsValid(true);
+          setValidationMessage('Модель прошла проверку ✓');
+        } else {
+          setIsValid(false);
+          setValidationMessage(`Ошибка: ${data.message}`);
+        }
+      } else {
+        setIsValid(false);
+        setValidationMessage(`Ошибка: ${data.detail || 'Неизвестная ошибка'}`);
+      }
+    } catch (err) {
+      setIsValid(false);
+      setValidationMessage('Не удалось подключиться к серверу валидации');
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isValid) {
+      alert('Сначала проверьте модель');
+      return;
+    }
     setLoading(true);
     setError(null);
 
@@ -120,13 +167,16 @@ export function AddModelForm({ onModelAdded }: AddModelFormProps) {
       is_active: false,
     });
     setError(null);
+    setValidationMessage(null);
+    setIsValid(false);
   };
 
   const handleChange = (field: keyof Omit<ModelFormData, 'supported_classes' | 'input_size'>, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'model_path') {
+      setValidationMessage(null);
+      setIsValid(false);
+    }
   };
 
   const handleInputSizeChange = (field: keyof InputSize, value: string) => {
@@ -279,8 +329,15 @@ export function AddModelForm({ onModelAdded }: AddModelFormProps) {
               <p className="text-xs text-muted-foreground">
                 Абсолютный путь к файлу модели на сервере
               </p>
+              <Button type="button" onClick={handleValidate} disabled={isValidating}>
+                {isValidating ? 'Проверка...' : 'Проверить модель'}
+              </Button>
+              {validationMessage && (
+                <Alert variant={isValid ? 'default' : 'destructive'}>
+                  <AlertDescription>{validationMessage}</AlertDescription>
+                </Alert>
+              )}
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="config_path">Путь к конфигурации</Label>
               <Input

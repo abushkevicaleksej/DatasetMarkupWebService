@@ -29,6 +29,9 @@ class MLModelCreate(BaseModel):
     confidence_threshold: float = Field(0.5, description="Default confidence threshold")
     is_active: bool = Field(False, description="Whether model is active")
 
+class MLModelValidate(BaseModel):
+    model_path: str = Field(..., description="Path to model weights")
+    framework: ModelFramework = Field(..., description="Model framework")
 
 class MLModelResponse(BaseModel):
     id: str
