@@ -12,6 +12,7 @@ class ModelType(str, Enum):
 
 class ModelFramework(str, Enum):
     YOLO = "yolo"
+    PYTORCH = "pytorch"
     DETECTRON = "detectron"
     TORCHVISION = "torchvision"
 
