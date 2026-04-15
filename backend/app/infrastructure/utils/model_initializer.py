@@ -1,5 +1,9 @@
+import logging
+
 from app.infrastructure.database import get_db
 from app.infrastructure.repositories.ml_model_repository import MLModelRepository
+
+logger = logging.getLogger(__name__)
 
 
 def initialize_predefined_models():
@@ -67,7 +71,6 @@ def initialize_predefined_models():
         if not model_exists:
             try:
                 model_repo.create_model(model_data)
+                logger.info("Created predefined model: %s", model_data['name'])
             except Exception as e:
-
-
-initialize_predefined_models()
+                logger.warning("Failed to create predefined model %s: %s", model_data['name'], str(e))

@@ -225,7 +225,7 @@ class YOLOService:
         return class_mapping.get(class_name.lower(), 0)
 
     def _save_updated_model(self, model, original_model_info) -> str:
-        models_dir = Path("ml_models")
+        models_dir = Path("models")
         models_dir.mkdir(exist_ok=True)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

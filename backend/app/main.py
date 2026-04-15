@@ -6,8 +6,10 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routers import create_api_router
 from app.infrastructure.database import create_tables
+from app.infrastructure.utils.model_initializer import initialize_predefined_models
 
 create_tables()
+initialize_predefined_models()
 
 app = FastAPI(title="Dataset Markup Web Service")
 

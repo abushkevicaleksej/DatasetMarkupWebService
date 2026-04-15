@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
-import { ListTodo, Box } from 'lucide-react';
+import { ListTodo, Box, BookOpen } from 'lucide-react';
 
 export function Header() {
   const navigate = useNavigate();
@@ -25,6 +25,14 @@ export function Header() {
           >
             <Box className="w-4 h-4" />
             Модели
+          </Button>
+          <Button
+            onClick={() => navigate('/help')}
+            variant={location.pathname === '/help' ? 'default' : 'outline'}
+            className="flex items-center gap-2"
+          >
+            <BookOpen className="w-4 h-4" />
+            Справка
           </Button>
         </div>
       </div>

@@ -1,5 +1,8 @@
 from typing import List
 from pathlib import Path
+import logging
+import uuid
+from datetime import datetime
 
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
@@ -10,13 +13,15 @@ from app.domain.ml_schemas import (
     PredictionResponse, OnlineLearningRequest, TrainingSessionResponse
 )
 from app.infrastructure.database import get_db
-from app.application.services.yolo_service import yolo_service
+from app.application.services.model_service import model_service
 from app.application.services.export_service import ExportService
 from app.infrastructure.repositories.ml_model_repository import (
     MLModelRepository, PredictionRepository, TrainingSessionRepository
     )
 from app.infrastructure.repositories.file_repository import FileRepository
 from app.infrastructure.repositories.annotation_repository import AnnotationRepository
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -101,7 +106,7 @@ async def predict(prediction_request: PredictionRequest, db: Session = Depends(g
 
         for file_info in files:
             try:
-                predictions, processing_time = await yolo_service.predict_single_image(
+                predictions, processing_time = await model_service.predict_single_image(
                     prediction_request.model_id,
                     Path(file_info.file_path),
                     prediction_request.confidence_threshold
@@ -128,8 +133,6 @@ async def predict(prediction_request: PredictionRequest, db: Session = Depends(g
 
                 prediction_repo.create_bounding_boxes(db_prediction.id, bboxes_data)
 
-                print(prediction_request.task_id)
-
                 if prediction_request.task_id:
                     annotation_repo.create_annotation(
                         file_id=file_info.id,
@@ -155,35 +158,58 @@ async def predict(prediction_request: PredictionRequest, db: Session = Depends(g
 
 @router.post("/online-learning")
 async def start_online_learning(
-        learning_request: OnlineLearningRequest,
-        background_tasks: BackgroundTasks,
-        db: Session = Depends(get_db)
-):  
-    import uuid
+    learning_request: OnlineLearningRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
     session_id = str(uuid.uuid4())
-    
+
     try:
         export_service = ExportService(db)
-        
         base_train_dir = Path("training_data") / session_id
-        
         yaml_path = export_service.prepare_dataset_for_training(
-            learning_request.task_id, 
+            learning_request.task_id,
             str(base_train_dir)
         )
-        
     except Exception as e:
+        logger.error("Failed to prepare dataset for session %s: %s", session_id, str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to prepare dataset: {str(e)}")
 
-    background_tasks.add_task(
-        yolo_service.run_training, 
-        model_path='yolov8n.pt',   
-        yaml_path=yaml_path,
-        epochs=learning_request.epochs,
-        batch_size=learning_request.batch_size,
-        lr=learning_request.learning_rate,
-        session_id=session_id
+    logger.info(
+        "Starting online learning: model=%s, task=%s, epochs=%d, batch=%d, lr=%f, session=%s",
+        learning_request.model_id, learning_request.task_id,
+        learning_request.epochs, learning_request.batch_size,
+        learning_request.learning_rate, session_id
     )
+
+    async def _run_training_with_error_handling():
+        try:
+            await model_service.online_learning(
+                model_id=learning_request.model_id,
+                task_id=learning_request.task_id,
+                session_id=session_id,
+                epochs=learning_request.epochs,
+                batch_size=learning_request.batch_size,
+                learning_rate=learning_request.learning_rate,
+                dataset_config=yaml_path,
+            )
+        except Exception as e:
+            logger.error(
+                "Background training failed for session %s: %s",
+                session_id, str(e), exc_info=True
+            )
+            # Update session status in DB since background task doesn't propagate errors
+            try:
+                training_repo = TrainingSessionRepository(db)
+                training_repo.update_session(session_id, {
+                    'status': 'failed',
+                    'end_time': datetime.now(),
+                    'error_message': str(e)
+                })
+            except Exception:
+                pass
+
+    background_tasks.add_task(_run_training_with_error_handling)
 
     return {"session_id": session_id, "status": "started"}
 

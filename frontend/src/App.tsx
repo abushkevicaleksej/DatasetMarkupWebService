@@ -4,6 +4,7 @@ import { Workspace } from '../components/Workspace';
 import { ModelList } from '../components/ModelList';
 import { TaskList } from '../components/TaskList';
 import { Header } from '../components/Header';
+import { HelpPage } from '../components/HelpPage';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
             <Route path="/workspace" element={<Workspace />} />
             <Route path="/models" element={<ModelList />} />
             <Route path="/tasks" element={<TaskList />} />
+            <Route path="/help" element={<HelpPage />} />
           </Routes>
         </main>
       </div>
