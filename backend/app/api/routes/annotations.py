@@ -7,6 +7,8 @@ from fastapi import APIRouter, HTTPException, Depends
 import httpx
 from PIL import Image
 
+from app.infrastructure.utils.dependencies import get_annotation_service
+
 from app.application.services.annotation_service import AnnotationService
 from app.infrastructure.database import get_db
 
@@ -43,15 +45,14 @@ class SmartBBoxRequest(BaseModel):
     y: int
 
 @router.post("/annotations")
-async def create_annotation(annotation_data: AnnotationCreateRequest, db: Session = Depends(get_db)):
-    from app.infrastructure.repositories.annotation_repository import AnnotationRepository
-    
+async def create_annotation(
+    annotation_data: AnnotationCreateRequest, 
+    service: AnnotationService = Depends(get_annotation_service) 
+):
     try:
-        annotation_repository = AnnotationRepository(db)
-        
         bboxes_dict = [bbox.dict() for bbox in annotation_data.bounding_boxes]
         
-        annotation = annotation_repository.create_annotation(
+        annotation = service.create_annotation(
             file_id=annotation_data.file_id,
             task_id=annotation_data.task_id,
             bounding_boxes=bboxes_dict

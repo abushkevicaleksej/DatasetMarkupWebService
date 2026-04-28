@@ -16,17 +16,19 @@ from app.infrastructure.database import get_db
 logger = logging.getLogger(__name__)
 
 class ModelService:
-    def __init__(self):
+    def __init__(self, model_repo, training_session_repo, anno_repo, file_repo):
         self.model_cache: Dict[str, BaseDetectionModel] = {}
         self._class_mappings: Dict[str, Dict[str, int]] = {}
+        self.model_repository = model_repo
+        self.training_session_repository = training_session_repo
+        self.anno_repo = anno_repo
+        self.file_repo = file_repo
 
     def _get_model(self, model_id: str) -> BaseDetectionModel:
         if model_id in self.model_cache:
             return self.model_cache[model_id]
 
-        db = next(get_db())
-        repo = MLModelRepository(db)
-        model_info = repo.get_model(model_id)
+        model_info = self.repo.get_model(model_id)
         if not model_info:
             raise ValueError(f"Model {model_id} not found")
 
@@ -61,13 +63,9 @@ class ModelService:
         dataset_config: Optional[str] = None,
         **kwargs
     ) -> str:
-        db = next(get_db())
-        training_repo = TrainingSessionRepository(db)
         model = self._get_model(model_id)
 
-        # Fetch model info for dynamic class mapping
-        model_repo = MLModelRepository(db)
-        model_info = model_repo.get_model(model_id)
+        model_info = self.model_repo.get_model(model_id)
         if not model_info:
             raise ValueError(f"Model {model_id} not found")
 
@@ -81,12 +79,10 @@ class ModelService:
                 train_size = self._get_dataset_size_from_yaml(dataset_config)
                 annotations = []
             else:
-                annotation_repo = AnnotationRepository(db)
-                file_repo = FileRepository(db)
-                annotations = annotation_repo.get_annotations_for_task(task_id)
+                annotations = self.annotation_repo.get_annotations_for_task(task_id)
                 if not annotations:
                     raise ValueError(f"No annotations for task {task_id}")
-                train_data = self._prepare_training_data(annotations, file_repo, model_id)
+                train_data = self._prepare_training_data(annotations, self.file_repo, model_id)
                 extra_kwargs = {}
                 train_size = len(train_data)
 
@@ -98,15 +94,15 @@ class ModelService:
                 self._extend_class_mapping(model_id, new_classes)
 
             # Create or update session
-            existing_session = training_repo.get_session(session_id)
+            existing_session = self.training_repo.get_session(session_id)
             if existing_session:
-                training_repo.update_session(session_id, {
+                self.training_repo.update_session(session_id, {
                     'status': 'running',
                     'train_files_count': train_size,
                     'start_time': datetime.now()
                 })
             else:
-                training_repo.create_session({
+                self.training_repo.create_session({
                     'id': session_id,
                     'model_id': model_id,
                     'task_id': task_id,
@@ -130,9 +126,9 @@ class ModelService:
             )
 
             new_model_path = self._save_updated_model(model, model_id)
-            model_repo.update_model(model_id, {'model_path': new_model_path, 'updated_at': datetime.now()})
+            self.model_repo.update_model(model_id, {'model_path': new_model_path, 'updated_at': datetime.now()})
 
-            training_repo.update_session(session_id, {
+            self.training_repo.update_session(session_id, {
                 'status': 'completed',
                 'final_accuracy': metrics.get('mAP', 0),
                 'final_loss': metrics.get('loss', 0),
@@ -144,7 +140,7 @@ class ModelService:
             return session_id
         except Exception as e:
             logger.error("Training failed for session %s: %s", session_id, str(e), exc_info=True)
-            training_repo.update_session(session_id, {
+            self.training_repo.update_session(session_id, {
                 'status': 'failed',
                 'end_time': datetime.now(),
                 'error_message': str(e)

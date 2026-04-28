@@ -91,7 +91,6 @@ class ExportService:
     def export_task_yolo(self, task_id: str) -> str:
 
         task = self.task_repo.get_by_id(task_id)
-        print(task_id)
         if not task:
             raise ValueError("Task not found")
 
