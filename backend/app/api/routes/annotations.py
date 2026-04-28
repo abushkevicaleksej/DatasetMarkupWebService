@@ -1,3 +1,5 @@
+import json
+
 from uuid import UUID
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
@@ -5,16 +7,24 @@ from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, HTTPException, Depends
 import httpx
+from faststream.rabbit import RabbitBroker
 from PIL import Image
 
 from app.application.services.annotation_service import AnnotationService
-from app.infrastructure.database import get_db
 
+from app.domain.entities.job_messages_model import SmartBBoxTaskMessage
+
+from app.infrastructure.database import get_db
 from app.infrastructure.repositories.file_repository import FileRepository
 from app.infrastructure.repositories.annotation_repository import AnnotationRepository
+from app.infrastructure.repositories.async_job_repository import AsyncJobRepository
 
 router = APIRouter()
+broker = None
 annotation_service = AnnotationService()
+
+def get_broker() -> RabbitBroker:
+    return broker
 
 class BoundingBoxCreate(BaseModel):
     x: float
@@ -172,7 +182,8 @@ async def delete_bounding_box(annotation_id: str, bbox_id: str, db: Session = De
 @router.post("/annotations/smart-bbox")
 async def create_smart_annotation(
     data: SmartBBoxRequest, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    broker: RabbitBroker = Depends(get_broker)
 ):
     
     from app.infrastructure.repositories.file_repository import FileRepository
@@ -183,60 +194,41 @@ async def create_smart_annotation(
     if not file_info:
         raise HTTPException(status_code=404, detail="File not found")
 
-    with Image.open(file_info.file_path) as img:
-        img_w, img_h = img.size
+    job_repo = AsyncJobRepository(db)
+    input_params = {
+        "file_id": data.file_id,
+        "task_id": data.task_id,
+        "x": data.x,
+        "y": data.y,
+        "file_path": str(file_info.file_path)
+    }
+    job = job_repo.create_job(type="smart_bbox", input_params=input_params)
 
-    SAM2_URL = "http://localhost:5000/annotate"
-    
-    try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            with open(file_info.file_path, "rb") as f:
-                files = {"file": (file_info.original_filename, f, file_info.mime_type)}
-                payload = {"x": data.x, "y": data.y}
-                sam_response = await client.post(SAM2_URL, files=files, data=payload)
-            
-            if sam_response.status_code != 200:
-                raise HTTPException(status_code=500, detail=f"SAM2 error: {sam_response.text}")
-            
-            result = sam_response.json()
-            
-            if not result.get("bbox"):
-                raise HTTPException(status_code=400, detail="Object not detected")
-
-            x_min, y_min, x_max, y_max = result["bbox"]
-            
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI Service error: {str(e)}")
-
-    norm_x = x_min / img_w
-    norm_y = y_min / img_h
-    norm_w = (x_max - x_min) / img_w
-    norm_h = (y_max - y_min) / img_h
-
-    annotation_repo = AnnotationRepository(db)
-    bbox_data = [{
-        "x": norm_x,
-        "y": norm_y,
-        "width": norm_w,
-        "height": norm_h,
-        "label": "auto-detected",
-        "confidence": result.get("score", 1.0)
-    }]
-    
-    new_ann = annotation_repo.create_annotation(
+    msg = SmartBBoxTaskMessage(
+        job_id=job.id,
         file_id=data.file_id,
         task_id=data.task_id,
-        bounding_boxes=bbox_data
+        x=data.x,
+        y=data.y,
+        file_path=str(file_info.file_path)
     )
-    
-    created_bbox = new_ann.bounding_boxes[0]
+    await broker.publish(msg, queue="smart_bbox")
+
     return {
-        "id": str(created_bbox.id),
-        "x": norm_x,
-        "y": norm_y,
-        "width": norm_w,
-        "height": norm_h,
-        "label": "auto-detected",
-        "color": "#3B82F6",
-        "isSelected": False
+        "job_id": job.id,
+        "status": job.status.value,
+        "message": "Smart bbox request accepted"
+    }
+
+@router.get("/annotations/smart-bbox/{job_id}/status")
+async def get_smart_bbox_status(job_id: str, db: Session = Depends(get_db)):
+    job_repo = AsyncJobRepository(db)
+    job = job_repo.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {
+        "job_id": job.id,
+        "status": job.status.value,
+        "result": json.loads(job.result) if job.result else None,
+        "error": job.error_message
     }

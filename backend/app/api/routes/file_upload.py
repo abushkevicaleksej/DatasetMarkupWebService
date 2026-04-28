@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
+from faststream.rabbit.fastapi import RabbitRouter
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
 from sqlalchemy.orm import Session
 from sqlalchemy import update
@@ -12,7 +13,7 @@ from app.application.services.file_processing_service import FileProcessingServi
 
 BASE_DIR = Path(__file__).parent.parent.parent
 
-router = APIRouter()
+router = RabbitRouter()
 
 @router.post("/upload")
 async def upload_file(
@@ -33,7 +34,6 @@ async def upload_file(
         if not result.success:
             raise HTTPException(status_code=400, detail=result.error_message)
 
-        # Обновляем task_id у созданных файлов
         if task_id:
             file_ids = [str(file_info.id) for file_info in result.extracted_files]
             stmt = update(FileModel).where(FileModel.id.in_(file_ids)).values(task_id=task_id)
