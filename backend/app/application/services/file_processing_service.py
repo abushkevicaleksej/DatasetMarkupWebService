@@ -90,7 +90,7 @@ class FileProcessingService:
             )
         
         processed_files = await self._save_files_to_db_and_storage(
-            image_result.extracted_files, file_path, original_filename
+            image_result.extracted_files
         )
         
         processing_time = time.time() - start_time
@@ -123,7 +123,7 @@ class FileProcessingService:
             )
         
         processed_files = await self._save_files_to_db_and_storage(
-            result.extracted_files, file_path, original_filename
+            result.extracted_files
         )
         
         processing_time = time.time() - start_time
