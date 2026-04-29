@@ -1,17 +1,20 @@
 import logging
+import uuid
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-import numpy as np
 import cv2
+import httpx
+from fastapi import BackgroundTasks
 
+from app.domain.ml_schemas import (
+    PredictionResponse, 
+    OnlineLearningRequest, 
+)
 from app.domain.entities.base_detection_model import BaseDetectionModel
 from app.application.services.model_factory import ModelFactory, ModelFramework
-from app.infrastructure.repositories.ml_model_repository import MLModelRepository, TrainingSessionRepository
-from app.infrastructure.repositories.annotation_repository import AnnotationRepository
-from app.infrastructure.repositories.file_repository import FileRepository
-from app.infrastructure.database import get_db
+from app.application.services.export_service import ExportService
 
 logger = logging.getLogger(__name__)
 
@@ -242,3 +245,103 @@ class ModelService:
         new_path = models_dir / f"{model_id}_updated_{timestamp}.pt"
         model.save(str(new_path))
         return str(new_path)
+
+    async def validate_model(self, model_data):
+        model_path = Path(model_data.model_path)
+        
+        if not model_path.exists():
+            raise ValueError("Model file not found")
+        
+        validation_url = "http://localhost:3033/validate"
+        async with httpx.AsyncClient() as client:
+            with open(model_path, "rb") as f:
+                files = {"model_file": f}
+                data = {"model_type": model_data.framework.value}
+                response = await client.post(validation_url, files=files, data=data)
+                return response
+            
+    async def predict_and_save(self, request) -> List[PredictionResponse]:
+        file_ids = request.file_ids[:request.max_predictions]
+        files = self.file_repository.get_by_ids(file_ids)
+        if not files:
+            raise ValueError("No files found")
+
+        results = []
+        for file_info in files:
+            try:
+                predictions, processing_time = await self.predict_single_image(
+                    request.model_id,
+                    Path(file_info.file_path),
+                    request.confidence_threshold
+                )
+
+                db_prediction = self.prediction_repository.create_prediction({
+                    'model_id': request.model_id,
+                    'file_id': file_info.id,
+                    'confidence_threshold': request.confidence_threshold,
+                    'total_predictions': len(predictions),
+                    'processing_time': processing_time
+                })
+
+                bboxes_data = [
+                    {
+                        'x': p.x, 'y': p.y, 'width': p.width, 'height': p.height,
+                        'label': p.label, 'confidence': p.confidence
+                    }
+                    for p in predictions
+                ]
+                self.prediction_repository.create_bounding_boxes(db_prediction.id, bboxes_data)
+
+                if request.task_id:
+                    self.annotation_repository.create_annotation(
+                        file_id=file_info.id,
+                        task_id=request.task_id,
+                        bounding_boxes=bboxes_data
+                    )
+
+                results.append(PredictionResponse(
+                    file_id=file_info.id,
+                    predictions=predictions,
+                    processing_time=processing_time,
+                    total_predictions=len(predictions)
+                ))
+
+            except Exception as e:
+                logger.error(f"Prediction failed for file {file_info.id}: {e}")
+
+        return results
+    
+    async def start_online_learning_background(
+        self,
+        request: OnlineLearningRequest,
+        export_service: ExportService,
+        background_tasks: BackgroundTasks
+    ) -> str:
+        session_id = str(uuid.uuid4())
+        base_train_dir = Path("training_data") / session_id
+
+        try:
+            yaml_path = export_service.prepare_dataset_for_training(
+                request.task_id,
+                str(base_train_dir)
+            )
+        except Exception as e:
+            logger.error(f"Failed to prepare dataset for session {session_id}: {e}")
+            raise
+
+        async def _train():
+            try:
+                await self.online_learning(
+                    model_id=request.model_id,
+                    task_id=request.task_id,
+                    session_id=session_id,
+                    epochs=request.epochs,
+                    batch_size=request.batch_size,
+                    learning_rate=request.learning_rate,
+                    dataset_config=yaml_path,
+                )
+            except Exception as e:
+                logger.error(f"Background training failed for session {session_id}: {e}")
+
+        background_tasks.add_task(_train)
+        return session_id
