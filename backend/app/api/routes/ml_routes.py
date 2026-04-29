@@ -18,12 +18,6 @@ from app.infrastructure.utils.dependencies import get_model_service, get_export_
 from app.application.services.export_service import ExportService
 from app.application.services.model_service import ModelService
 
-from app.infrastructure.repositories.ml_model_repository import (
-    MLModelRepository, PredictionRepository, TrainingSessionRepository
-    )
-from app.infrastructure.repositories.file_repository import FileRepository
-from app.infrastructure.repositories.annotation_repository import AnnotationRepository
-
 logger = logging.getLogger(__name__)
 
 router = APIRouter()

@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.orm import Session
 
+from app.domain.entities.annotation_task import TaskCreateRequest, TaskResponse
 from app.infrastructure.utils.dependencies import get_task_service
 from app.domain.entities.annotation import BoundingBox
 from app.application.services.task_service import TaskService
@@ -14,23 +15,6 @@ from app.application.services.task_service import TaskService
 router = APIRouter()
 
 BASE_DIR = Path(__file__).parent.parent.parent
-
-class TaskCreateRequest(BaseModel):
-    name: str
-    description: Optional[str] = None
-    file_ids: Optional[List[str]] = None
-
-
-class TaskResponse(BaseModel):
-    id: str
-    name: str
-    description: Optional[str]
-    status: str
-    file_count: int
-    annotation_count: int
-    created_at: str
-    updated_at: str
-
 
 @router.get("/api/tasks", response_class=JSONResponse)
 async def get_tasks(service: Annotated[TaskService, Depends(get_task_service)]):
@@ -111,8 +95,6 @@ async def get_task_annotations(
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
         
-        annotations = task.annotations
-        
         return [
             {
                 "id": str(annotation.id),
@@ -121,7 +103,7 @@ async def get_task_annotations(
                 "visible": True,
                 "color": annotation.color or "#3b82f6"
             }
-            for annotation in annotations
+            for annotation in task.annotations
         ]
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
