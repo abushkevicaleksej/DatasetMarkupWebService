@@ -1,13 +1,99 @@
+import uuid
 from typing import List, Dict
+
+from PIL import Image
+import httpx
+
 from app.infrastructure.repositories.annotation_repository import AnnotationRepository
+from app.infrastructure.repositories.file_repository import FileRepository
+from app.domain.entities.annotation import Annotation, BoundingBox, AnnotationCreateRequest
 
 class AnnotationService:
-    def __init__(self, annotation_repository: AnnotationRepository):
+    def __init__(self, annotation_repository: AnnotationRepository, file_repository: FileRepository):
         self.annotation_repository = annotation_repository
+        self.file_repository = file_repository
 
-    def create_annotation(self, file_id: str, task_id: str, bounding_boxes: List[Dict]):
-        return self.annotation_repository.create_annotation(file_id, task_id, bounding_boxes)
+    def create_annotation(self, request: AnnotationCreateRequest) -> Annotation:
+        bboxes_dicts = [
+            {
+                "id": None,
+                "x": b.x,
+                "y": b.y,
+                "width": b.width,
+                "height": b.height,
+                "label": b.label,
+                "confidence": b.confidence
+            }
+            for b in request.bounding_boxes
+        ]
+
+        annotation = self.annotation_repository.create_annotation(
+            file_id=request.file_id,
+            task_id=request.task_id,
+            bounding_boxes=bboxes_dicts
+        )
+
+        if not annotation.bounding_boxes:
+            raise ValueError("Annotation must contain at least one bounding box")
+
+        return annotation
+
+    async def create_smart_annotation(self, file_id: str, task_id: str, x: float, y: float) -> dict:
+        file_info = self.file_repository.get_by_id(file_id)
+        if not file_info:
+            raise ValueError("File not found")
+
+        with Image.open(file_info.file_path) as img:
+            img_w, img_h = img.size
+
+        bbox_pixels, score = await self._call_sam2_service(file_info, x, y)
+
+        norm_x = bbox_pixels[0] / img_w
+        norm_y = bbox_pixels[1] / img_h
+        norm_w = (bbox_pixels[2] - bbox_pixels[0]) / img_w
+        norm_h = (bbox_pixels[3] - bbox_pixels[1]) / img_h
+
+        bbox_data = [{
+            "x": norm_x,
+            "y": norm_y,
+            "width": norm_w,
+            "height": norm_h,
+            "label": "auto-detected",
+            "confidence": score
+        }]
+
+        new_ann = self.annotation_repository.create_annotation(
+            file_id=file_id,
+            task_id=task_id,
+            bounding_boxes=bbox_data
+        )
+
+        created_bbox = new_ann.bounding_boxes[0]
+        return {
+            "id": str(created_bbox.id),
+            "x": norm_x,
+            "y": norm_y,
+            "width": norm_w,
+            "height": norm_h,
+            "label": "auto-detected",
+            "color": "#3B82F6",
+            "isSelected": False
+        }
     
+    async def _call_sam2_service(self, file_info, x: float, y: float):
+        SAM2_URL = "http://localhost:5000/annotate"
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            with open(file_info.file_path, "rb") as f:
+                files = {"file": (file_info.original_filename, f, file_info.mime_type)}
+                payload = {"x": x, "y": y}
+                response = await client.post(SAM2_URL, files=files, data=payload)
+            if response.status_code != 200:
+                raise RuntimeError(f"SAM2 error: {response.text}")
+            result = response.json()
+            if not result.get("bbox"):
+                raise ValueError("Object not detected")
+            return result["bbox"], result.get("score", 1.0)
+
     def get_annotations_for_file(self, file_id: str):
         return self.annotation_repository.get_annotations_for_file(file_id)
     

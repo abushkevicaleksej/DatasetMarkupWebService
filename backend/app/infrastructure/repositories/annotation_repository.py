@@ -1,7 +1,8 @@
+import datetime
 from typing import List, Dict
 
 from sqlalchemy.orm import Session
-from sqlalchemy.orm import sessionmaker, relationship, declarative_base, joinedload
+from sqlalchemy.orm import joinedload
 
 from app.domain.models import Annotation, BoundingBox
 
@@ -11,15 +12,15 @@ class AnnotationRepository:
         self.db = db
     
 
-    def create_annotation(self, file_id: str, task_id: str, bounding_boxes: List[Dict]) -> Annotation:
+    def create_annotation(self, file_id: str, task_id: str, bounding_boxes: List[Dict]) -> "Annotation":  # ваш dataclass
         db_annotation = Annotation(
             file_id=file_id,
             task_id=task_id
         )
-        
         self.db.add(db_annotation)
         self.db.flush()
-        
+
+        bbox_objects = []
         for bbox_data in bounding_boxes:
             db_bbox = BoundingBox(
                 annotation_id=db_annotation.id,
@@ -31,10 +32,27 @@ class AnnotationRepository:
                 confidence=bbox_data.get('confidence', 1.0)
             )
             self.db.add(db_bbox)
-        
+            bbox_objects.append(db_bbox)
+
         self.db.commit()
-        self.db.refresh(db_annotation)
-        return db_annotation
+
+        return Annotation(
+            id=db_annotation.id,
+            file_id=db_annotation.file_id,
+            bounding_boxes=[
+                BoundingBox(
+                    id=b.id,
+                    x=b.x,
+                    y=b.y,
+                    width=b.width,
+                    height=b.height,
+                    label=b.label,
+                    confidence=b.confidence
+                )
+                for b in bbox_objects
+            ],
+            created_at=db_annotation.created_at or datetime.now()
+        )
     
 
     def get_annotations_for_file(self, file_id: str) -> List[Annotation]:

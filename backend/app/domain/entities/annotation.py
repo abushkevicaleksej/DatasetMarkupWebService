@@ -1,8 +1,8 @@
 from uuid import UUID
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Any, List
-
+from typing import Dict, Any, List, Optional
+from pydantic import BaseModel
 
 @dataclass
 class BoundingBox:
@@ -25,3 +25,29 @@ class Annotation:
     def __post_init__(self):
         if self.created_at is None:
             self.created_at = datetime.now()
+
+class BoundingBoxCreate(BaseModel):
+    x: float
+    y: float
+    width: float
+    height: float
+    label: str = "object"
+    confidence: float = 1.0
+
+class BoundingBoxUpdate(BaseModel):
+    x: Optional[float] = None
+    y: Optional[float] = None
+    width: Optional[float] = None
+    height: Optional[float] = None
+    label: Optional[str] = None
+
+class AnnotationCreateRequest(BaseModel):
+    file_id: str
+    task_id: str
+    bounding_boxes: List[BoundingBoxCreate]
+
+class SmartBBoxRequest(BaseModel):
+    file_id: str
+    task_id: str
+    x: int
+    y: int

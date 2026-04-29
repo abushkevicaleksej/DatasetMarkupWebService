@@ -16,9 +16,10 @@ from app.application.services.model_service import ModelService
 from app.application.services.task_service import TaskService
 
 def get_annotation_service(db: Session = Depends(get_db)) -> AnnotationService:
-    repo = AnnotationRepository(db)
+    annotation_repo = AnnotationRepository(db)
+    file_repo = FileRepository(db)
     
-    return AnnotationService(repo)
+    return AnnotationService(annotation_repo, file_repo)
 
 def get_export_service(db: Session = Depends(get_db)) -> ExportService:
     task_repo = TaskRepository(db)
