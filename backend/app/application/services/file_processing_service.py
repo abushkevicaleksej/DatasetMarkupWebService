@@ -1,25 +1,61 @@
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Optional
 import tempfile
 import shutil
 from uuid import uuid4
 import asyncio
 import time
 
-from app.domain.entities.file_info import ProcessingResult, FileInfo, MediaType
-from app.infrastructure.repositories.file_repository import FileRepository
-from app.infrastructure.database import get_db
+from app.domain.entities.file_info import ProcessingResult, FileInfo
 from app.infrastructure.utils.content_extractor import ContentExtractor
 from app.infrastructure.file_processors.image_processor import ImageProcessor
 
 class FileProcessingService:
     
-    def __init__(self, file_repository):
+    def __init__(self, file_repository, task_repository):
         self.upload_dir = Path("uploads")
         self.upload_dir.mkdir(exist_ok=True)
         self.content_extractor = ContentExtractor()
         self.image_processor = ImageProcessor()
         self.file_repository = file_repository
+        self.task_repository = task_repository
+
+    async def upload_and_process(
+        self, 
+        file_content: bytes, 
+        original_filename: str, 
+        task_id: Optional[str] = None
+    ) -> dict:
+        if task_id:
+            task = self.task_repository.get_by_id(task_id) if self.task_repository else None
+            if not task:
+                raise ValueError("Task not found")
+        
+        result = await self.process_file(file_content, original_filename)
+        if not result.success:
+            raise ValueError(result.error_message)
+        
+        if task_id and result.extracted_files:
+            file_ids = [str(file_info.id) for file_info in result.extracted_files]
+            self.file_repository.update_task_id_for_files(file_ids, task_id)
+        
+        response = {
+            "success": True,
+            "processing_time": result.processing_time,
+            "extracted_files": [
+                {
+                    "id": str(f.id),
+                    "original_filename": f.original_filename,
+                    "media_type": f.media_type.value,
+                    "file_size": f.file_size,
+                    "width": f.width,
+                    "height": f.height
+                }
+                for f in result.extracted_files
+            ]
+        }
+        redirect = f"/workspace?taskId={task_id}" if task_id else "/workspace"
+        return {**response, "redirect_url": redirect}
 
     async def process_file(self, file_content: bytes, original_filename: str) -> ProcessingResult:
         import time

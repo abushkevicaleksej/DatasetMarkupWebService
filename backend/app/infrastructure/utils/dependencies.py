@@ -42,6 +42,7 @@ def get_task_service(db: Session = Depends(get_db)) -> TaskService:
     return TaskService(task_repo)
 
 def get_file_processing_service(db: Session = Depends(get_db)) -> FileProcessingService:
-    file_repo =FileRepository(db)
-    
-    return FileProcessingService(file_repo)
+    file_repo = FileRepository(db)
+    task_repo = TaskRepository(db)
+
+    return FileProcessingService(file_repo, task_repo)

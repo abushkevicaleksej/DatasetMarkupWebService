@@ -7,7 +7,6 @@ from app.domain.models import Task, File
 class TaskRepository:
     def __init__(self, db: Session):
         self.db = db
-    
 
     def create(self, name: str, description: str, file_ids: List[str] = None) -> Task:
         db_task = Task(

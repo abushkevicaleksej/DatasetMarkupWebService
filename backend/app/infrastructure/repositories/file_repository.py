@@ -1,6 +1,7 @@
 from uuid import UUID
 from typing import List, Optional
 
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.domain.models import File
@@ -10,7 +11,11 @@ from app.domain.entities.file_info import FileInfo
 class FileRepository:
     def __init__(self, db: Session):
         self.db = db
-    
+
+    def update_task_id_for_files(self, file_ids: List[str], task_id: str):
+        stmt = update(File).where(File.id.in_(file_ids)).values(task_id=task_id)
+        self.db.execute(stmt)
+        self.db.commit()    
 
     def create(self, file_info: FileInfo) -> File:
         db_file = File(
