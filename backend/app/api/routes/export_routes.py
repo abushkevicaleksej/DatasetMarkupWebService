@@ -18,11 +18,9 @@ async def export_task_dataset(
     try:
         zip_path = service.export_task_yolo(task_id)
                 
-        filename = os.path.basename(zip_path)
-        
         return FileResponse(
             path=zip_path,
-            filename=filename,
+            filename=os.path.basename(zip_path),
             media_type='application/zip'
         )
     except ValueError as e:
