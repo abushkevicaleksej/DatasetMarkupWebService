@@ -13,10 +13,9 @@ from app.infrastructure.repositories.task_repository import TaskRepository
 from app.infrastructure.repositories.file_repository import FileRepository
 
 class ExportService:
-    def __init__(self, db: Session):
-        self.db = db
-        self.task_repo = TaskRepository(db)
-        self.file_repo = FileRepository(db)
+    def __init__(self, task_repository: TaskRepository, file_repository: FileRepository):
+        self.task_repo = task_repository
+        self.file_repo = file_repository
 
     def _prepare_yolo_structure(self, task_id: str, output_dir: Path) -> str:
 

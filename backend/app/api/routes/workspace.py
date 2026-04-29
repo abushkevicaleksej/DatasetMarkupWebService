@@ -1,29 +1,26 @@
-import os
+from typing import Annotated
 from pathlib import Path
+
 from sqlalchemy.orm import Session
 
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import HTMLResponse, FileResponse
 
-from app.infrastructure.database import get_db
+from app.application.services.file_processing_service import FileProcessingService
+from app.infrastructure.utils.dependencies import get_file_processing_service
+
 from app.domain.ml_schemas import (
     PredictionResponse
 )
 
-
 BASE_DIR = Path(__file__).parent.parent.parent
-
 
 router = APIRouter()
 
-
 @router.get("/files")
-async def get_all_files(db: Session = Depends(get_db)):
-    from app.infrastructure.repositories.file_repository import FileRepository
-
+async def get_all_files(service: Annotated[FileProcessingService, Depends(get_file_processing_service)]):
     try:
-        file_repository = FileRepository(db)
-        files = file_repository.get_all()
+        files = service.file_repository.get_all()
 
         return [
             {
@@ -37,15 +34,14 @@ async def get_all_files(db: Session = Depends(get_db)):
         ]
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
 
 @router.get("/files/{file_id}")
-async def get_file(file_id: str, db: Session = Depends(get_db)):
-    from app.infrastructure.repositories.file_repository import FileRepository
-    
+async def get_file(
+    file_id: str, 
+    service: Annotated[FileProcessingService, Depends(get_file_processing_service)]
+):
     try:
-        file_repository = FileRepository(db)
-        file_info = file_repository.get_by_id(file_id)
+        file_info = service.file_repository.get_by_id(file_id)
         
         if not file_info:
             raise HTTPException(status_code=404, detail="File not found")
@@ -61,15 +57,14 @@ async def get_file(file_id: str, db: Session = Depends(get_db)):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error serving file: {str(e)}")
-    
 
 @router.delete("/files/{file_id}")
-async def delete_file(file_id: str, db: Session = Depends(get_db)):
-    from app.infrastructure.repositories.file_repository import FileRepository
-    
+async def delete_file(
+    file_id: str, 
+    service: Annotated[FileProcessingService, Depends(get_file_processing_service)]
+):
     try:
-        file_repository = FileRepository(db)
-        success = file_repository.delete(file_id)
+        success = service.file_repository.delete(file_id)
         
         if not success:
             raise HTTPException(status_code=404, detail="File not found")
@@ -78,20 +73,19 @@ async def delete_file(file_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
-
 @router.put("/files/{file_id}")
-async def update_files(file_id: str, update_data: PredictionResponse, db: Session = Depends(get_db)):
-    from app.infrastructure.repositories.file_repository import FileRepository
-    
+async def update_files(
+    file_id: str, 
+    update_data: PredictionResponse, 
+    service: Annotated[FileProcessingService, Depends(get_file_processing_service)]
+):
     try:
-        file_repository = FileRepository(db)
-        
         updates = update_data.dict(exclude_unset=True)
         
         if not updates:
             return {"message": "No data provided for update"}
 
-        success = file_repository.update_file(
+        success = service.file_repository.update_file(
             file_id=file_id, 
             update_data=updates
         )

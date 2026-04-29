@@ -1,22 +1,16 @@
-from uuid import UUID
 from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
+from typing import List, Optional, Annotated
 
-from sqlalchemy.orm import Session
 from fastapi import APIRouter, HTTPException, Depends
 import httpx
 from PIL import Image
 
-from app.infrastructure.utils.dependencies import get_annotation_service
+from app.infrastructure.utils.dependencies import get_annotation_service, get_model_service
 
 from app.application.services.annotation_service import AnnotationService
-from app.infrastructure.database import get_db
-
-from app.infrastructure.repositories.file_repository import FileRepository
-from app.infrastructure.repositories.annotation_repository import AnnotationRepository
+from app.application.services.model_service import ModelService
 
 router = APIRouter()
-annotation_service = AnnotationService()
 
 class BoundingBoxCreate(BaseModel):
     x: float
@@ -47,7 +41,7 @@ class SmartBBoxRequest(BaseModel):
 @router.post("/annotations")
 async def create_annotation(
     annotation_data: AnnotationCreateRequest, 
-    service: AnnotationService = Depends(get_annotation_service) 
+    service: Annotated[AnnotationService, Depends(get_annotation_service)] 
 ):
     try:
         bboxes_dict = [bbox.dict() for bbox in annotation_data.bounding_boxes]
@@ -80,12 +74,12 @@ async def create_annotation(
 
 
 @router.get("/annotations/file/{file_id}")
-async def get_annotations_for_file(file_id: str, db: Session = Depends(get_db)):
-    from app.infrastructure.repositories.annotation_repository import AnnotationRepository
-    
+async def get_annotations_for_file(
+    file_id: str, 
+    service: Annotated[AnnotationService, Depends(get_annotation_service)]
+):
     try:
-        annotation_repository = AnnotationRepository(db)
-        annotations = annotation_repository.get_annotations_for_file(file_id)
+        annotations = service.get_annotations_for_file(file_id)
         
         response = []
         for annotation in annotations:
@@ -114,18 +108,18 @@ async def get_annotations_for_file(file_id: str, db: Session = Depends(get_db)):
 
 
 @router.put("/annotations/bbox/{bbox_id}")
-async def update_bounding_box(bbox_id: str, update_data: BoundingBoxUpdate, db: Session = Depends(get_db)):
-    from app.infrastructure.repositories.annotation_repository import AnnotationRepository
-    
+async def update_bounding_box(
+    bbox_id: str, 
+    update_data: BoundingBoxUpdate, 
+    service: Annotated[AnnotationService, Depends(get_annotation_service)]
+):
     try:
-        annotation_repository = AnnotationRepository(db)
-        
         updates = update_data.dict(exclude_unset=True)
         
         if not updates:
             return {"message": "No data provided for update"}
 
-        success = annotation_repository.update_bounding_box(
+        success = service.update_bounding_box(
             bbox_id=bbox_id, 
             update_data=updates
         )
@@ -139,12 +133,12 @@ async def update_bounding_box(bbox_id: str, update_data: BoundingBoxUpdate, db: 
 
 
 @router.delete("/annotations/{annotation_id}")
-async def delete_annotation(annotation_id: str, db: Session = Depends(get_db)):
-    from app.infrastructure.repositories.annotation_repository import AnnotationRepository
-    
+async def delete_annotation(
+    annotation_id: str, 
+    service: Annotated[AnnotationService, Depends(get_annotation_service)]
+):
     try:
-        annotation_repository = AnnotationRepository(db)
-        success = annotation_repository.delete_annotation(annotation_id)
+        success = service.delete_annotation(annotation_id)
         
         if not success:
             raise HTTPException(status_code=404, detail="Annotation not found")
@@ -155,12 +149,13 @@ async def delete_annotation(annotation_id: str, db: Session = Depends(get_db)):
 
 
 @router.delete("/annotations/{annotation_id}/bbox/{bbox_id}")
-async def delete_bounding_box(annotation_id: str, bbox_id: str, db: Session = Depends(get_db)):
-    from app.infrastructure.repositories.annotation_repository import AnnotationRepository
-    
+async def delete_bounding_box(
+    annotation_id: str, 
+    bbox_id: str, 
+    service: Annotated[AnnotationService, Depends(get_annotation_service)]
+):
     try:
-        annotation_repository = AnnotationRepository(db)
-        success = annotation_repository.delete_bounding_box(bbox_id)
+        success = service.delete_bounding_box(bbox_id)
         
         if not success:
             raise HTTPException(status_code=404, detail="Bounding box not found")
@@ -173,14 +168,9 @@ async def delete_bounding_box(annotation_id: str, bbox_id: str, db: Session = De
 @router.post("/annotations/smart-bbox")
 async def create_smart_annotation(
     data: SmartBBoxRequest, 
-    db: Session = Depends(get_db)
+    service: Annotated[ModelService, Depends(get_model_service)]
 ):
-    
-    from app.infrastructure.repositories.file_repository import FileRepository
-    from app.infrastructure.repositories.annotation_repository import AnnotationRepository
-    
-    file_repo = FileRepository(db)
-    file_info = file_repo.get_by_id(data.file_id)
+    file_info = service.file_repository.get_by_id(data.file_id)
     if not file_info:
         raise HTTPException(status_code=404, detail="File not found")
 
@@ -214,7 +204,6 @@ async def create_smart_annotation(
     norm_w = (x_max - x_min) / img_w
     norm_h = (y_max - y_min) / img_h
 
-    annotation_repo = AnnotationRepository(db)
     bbox_data = [{
         "x": norm_x,
         "y": norm_y,
@@ -224,7 +213,7 @@ async def create_smart_annotation(
         "confidence": result.get("score", 1.0)
     }]
     
-    new_ann = annotation_repo.create_annotation(
+    new_ann = service.annotation_repository.create_annotation(
         file_id=data.file_id,
         task_id=data.task_id,
         bounding_boxes=bbox_data

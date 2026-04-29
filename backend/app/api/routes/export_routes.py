@@ -1,20 +1,21 @@
 import os
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.infrastructure.database import get_db
+from app.infrastructure.utils.dependencies import get_export_service
 from app.application.services.export_service import ExportService
-
 
 router = APIRouter()
 
-
 @router.get("/api/tasks/{task_id}/export/yolo")
-async def export_task_dataset(task_id: str, db: Session = Depends(get_db)):
+async def export_task_dataset(
+    task_id: str, 
+    service: Annotated[ExportService, Depends(get_export_service)]
+):
     try:
-        service = ExportService(db)
         zip_path = service.export_task_yolo(task_id)
                 
         filename = os.path.basename(zip_path)

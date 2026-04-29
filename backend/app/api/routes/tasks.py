@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Annotated
 from pathlib import Path
 from uuid import UUID
 
@@ -7,17 +7,13 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.orm import Session
 
+from app.infrastructure.utils.dependencies import get_task_service
 from app.domain.entities.annotation import BoundingBox
 from app.application.services.task_service import TaskService
-from app.infrastructure.database import get_db
-
 
 router = APIRouter()
-task_service = TaskService()
-
 
 BASE_DIR = Path(__file__).parent.parent.parent
-
 
 class TaskCreateRequest(BaseModel):
     name: str
@@ -37,11 +33,8 @@ class TaskResponse(BaseModel):
 
 
 @router.get("/api/tasks", response_class=JSONResponse)
-async def get_tasks(db: Session = Depends(get_db)):
-    from app.infrastructure.repositories.task_repository import TaskRepository
-
-    task_repository = TaskRepository(db)
-    tasks = task_repository.get_all()
+async def get_tasks(service: Annotated[TaskService, Depends(get_task_service)]):
+    tasks = service.task_repository.get_all()
 
     response = []
     for task in tasks:
@@ -59,14 +52,13 @@ async def get_tasks(db: Session = Depends(get_db)):
         )
     return response
 
-
 @router.post("/api/tasks", response_model=TaskResponse)
-async def create_task(task_data: TaskCreateRequest, db: Session = Depends(get_db)):
-    from app.infrastructure.repositories.task_repository import TaskRepository
-
+async def create_task(
+    task_data: TaskCreateRequest, 
+    service: Annotated[TaskService, Depends(get_task_service)]
+):
     try:
-        task_repository = TaskRepository(db)
-        task = task_repository.create(
+        task = service.task_repository.create(
             name=task_data.name,
             description=task_data.description,
             file_ids=task_data.file_ids or []
@@ -85,15 +77,17 @@ async def create_task(task_data: TaskCreateRequest, db: Session = Depends(get_db
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
 @router.get("/api/tasks/{task_id}/files")
-async def get_task_files(task_id: str, db: Session = Depends(get_db)):
+async def get_task_files(
+    task_id: str, 
+    service: Annotated[TaskService, Depends(get_task_service)]
+):
     from app.domain.models import File, Task
-    task = db.query(Task).filter(Task.id == task_id).first()
+    task = service.task_repository.db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
-    files = db.query(File).filter(File.task_id == task_id).all()
+    files = service.task_repository.db.query(File).filter(File.task_id == task_id).all()
     
     return [
         {
@@ -106,14 +100,13 @@ async def get_task_files(task_id: str, db: Session = Depends(get_db)):
         for file in files
     ]
 
-
 @router.get("/api/tasks/{task_id}/annotations")
-async def get_task_annotations(task_id: str, db: Session = Depends(get_db)):
-    from app.infrastructure.repositories.task_repository import TaskRepository
-
+async def get_task_annotations(
+    task_id: str, 
+    service: Annotated[TaskService, Depends(get_task_service)]
+):
     try:
-        task_repository = TaskRepository(db)
-        task = task_repository.get_by_id(task_id)
+        task = service.task_repository.get_by_id(task_id)
         
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
@@ -133,14 +126,13 @@ async def get_task_annotations(task_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
 @router.delete("/api/tasks/{task_id}")
-async def delete_task(task_id: str, db: Session = Depends(get_db)):
-    from app.infrastructure.repositories.task_repository import TaskRepository
-    
+async def delete_task(
+    task_id: str, 
+    service: Annotated[TaskService, Depends(get_task_service)]
+):
     try:
-        task_repository = TaskRepository(db)
-        success = task_repository.delete(task_id)
+        success = service.task_repository.delete(task_id)
         
         if not success:
             raise HTTPException(status_code=404, detail="Task not found")

@@ -14,12 +14,12 @@ from app.infrastructure.file_processors.image_processor import ImageProcessor
 
 class FileProcessingService:
     
-    def __init__(self):
+    def __init__(self, file_repository):
         self.upload_dir = Path("uploads")
         self.upload_dir.mkdir(exist_ok=True)
         self.content_extractor = ContentExtractor()
         self.image_processor = ImageProcessor()
-    
+        self.file_repository = file_repository
 
     async def process_file(self, file_content: bytes, original_filename: str) -> ProcessingResult:
         import time
@@ -56,7 +56,6 @@ class FileProcessingService:
         finally:
             await self._cleanup_temp_dirs(temp_dirs_to_cleanup)
     
-
     async def _process_with_extraction(self, file_path: Path, original_filename: str, 
                                     start_time: float, temp_dirs_to_cleanup: list) -> ProcessingResult:
         
@@ -101,7 +100,6 @@ class FileProcessingService:
             processing_time=processing_time
         )
     
-
     async def _process_direct(self, file_path: Path, original_filename: str, start_time: float) -> ProcessingResult:
         
         if not self.image_processor.can_process(original_filename):
@@ -134,12 +132,11 @@ class FileProcessingService:
             extracted_files=processed_files,
             processing_time=processing_time
         )
-    
 
-    async def _save_files_to_db_and_storage(self, file_infos: List[FileInfo], 
-                                          source_file_path: Path, original_filename: str) -> List[FileInfo]:
-        db = next(get_db())
-        file_repository = FileRepository(db)
+    async def _save_files_to_db_and_storage(
+            self, 
+            file_infos: List[FileInfo],
+    ) -> List[FileInfo]:
         
         processed_files = []
         source_file_id = uuid4()
@@ -156,13 +153,12 @@ class FileProcessingService:
                 file_info.file_size = new_file_path.stat().st_size
                 file_info.extracted_from = source_file_id
                 
-                file_repository.create(file_info)
+                self.file_repository.create(file_info)
                 processed_files.append(file_info)
             else:
                 print(f"Warning: File {file_info.file_path} does not exist, skipping")
         
         return processed_files
-    
 
     async def _cleanup_temp_dirs(self, temp_dirs: List[Path]):
         for temp_dir in temp_dirs:
@@ -174,7 +170,6 @@ class FileProcessingService:
                     print(f"Cleaned up temp directory: {temp_dir}")
                 except Exception as e:
                     print(f"Error cleaning up {temp_dir}: {e}")
-    
 
     def _remove_directory(self, path: Path):
         import shutil

@@ -17,9 +17,9 @@ class YOLOService:
         self.model_cache = {}
         self.runs_dir = Path("runs") 
         self.model_repository = model_repository
-        self.training_repo = training_repo
-        self.annotation_repo = annotation_repo
-        self.file_repo = file_repo
+        self.training_repository = training_repo
+        self.annotation_repository = annotation_repo
+        self.file_repository = file_repo
 
     def load_model(self, model_path: str, config_path: Optional[str] = None) -> Any:
         if model_path in self.model_cache:
@@ -54,15 +54,13 @@ class YOLOService:
             
             print(f"Training finished successfully. Saved to: {model.trainer.save_dir}")
             
-            
         except Exception as e:
             print(f"Training failed for session {session_id}: {e}")
-
 
     async def predict_single_image(self, model_id: str, file_path: Path,
                                    confidence_threshold: float = 0.5) -> List[BoundingBoxPrediction]:
 
-        model_info = self.model_repo.get_model(model_id)
+        model_info = self.model_repository.get_model(model_id)
         if not model_info:
             raise ValueError(f"Model {model_id} not found")
 
@@ -130,11 +128,11 @@ class YOLOService:
                               epochs: int = 10, batch_size: int = 8,
                               learning_rate: float = 0.001) -> str:
 
-        model_info = self.model_repo.get_model(model_id)
+        model_info = self.model_repository.get_model(model_id)
         if not model_info:
             raise ValueError(f"Model {model_id} not found")
 
-        session = self.training_repo.create_session({
+        session = self.training_repository.create_session({
             'model_id': model_id,
             'task_id': task_id,
             'epochs': epochs,
@@ -144,14 +142,14 @@ class YOLOService:
         })
 
         try:
-            annotations = self.annotation_repo.get_annotations_for_task(task_id)
+            annotations = self.annotation_repository.get_annotations_for_task(task_id)
 
             if not annotations:
                 raise ValueError(f"No annotations found for task {task_id}")
 
-            training_data = self._prepare_training_data(annotations, self.file_repo)
+            training_data = self._prepare_training_data(annotations, self.file_repository)
 
-            self.training_repo.update_session(session.id, {
+            self.training_repository.update_session(session.id, {
                 'status': 'running',
                 'train_files_count': len(training_data),
                 'start_time': datetime.now()
@@ -169,7 +167,7 @@ class YOLOService:
 
             updated_model_path = self._save_updated_model(model, model_info)
 
-            self.training_repo.update_session(session.id, {
+            self.training_repository.update_session(session.id, {
                 'status': 'completed',
                 'final_accuracy': results.results_dict.get('metrics/mAP50-95(B)', 0),
                 'final_loss': results.results_dict.get('train/box_loss', 0),
@@ -180,7 +178,7 @@ class YOLOService:
             return session.id
 
         except Exception as e:
-            self.training_repo.update_session(session.id, {
+            self.training_repository.update_session(session.id, {
                 'status': 'failed',
                 'end_time': datetime.now()
             })
@@ -232,5 +230,3 @@ class YOLOService:
         model.save(new_model_path)
 
         return str(new_model_path)
-
-yolo_service = YOLOService()

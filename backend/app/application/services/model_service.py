@@ -16,19 +16,20 @@ from app.infrastructure.database import get_db
 logger = logging.getLogger(__name__)
 
 class ModelService:
-    def __init__(self, model_repo, training_session_repo, anno_repo, file_repo):
+    def __init__(self, model_repo, training_session_repo, anno_repo, file_repo, pred_repo):
         self.model_cache: Dict[str, BaseDetectionModel] = {}
         self._class_mappings: Dict[str, Dict[str, int]] = {}
         self.model_repository = model_repo
         self.training_session_repository = training_session_repo
-        self.anno_repo = anno_repo
-        self.file_repo = file_repo
+        self.annotation_repository = anno_repo
+        self.file_repository = file_repo
+        self.prediction_repository = pred_repo
 
     def _get_model(self, model_id: str) -> BaseDetectionModel:
         if model_id in self.model_cache:
             return self.model_cache[model_id]
 
-        model_info = self.repo.get_model(model_id)
+        model_info = self.model_repository.get_model(model_id)
         if not model_info:
             raise ValueError(f"Model {model_id} not found")
 
@@ -39,7 +40,9 @@ class ModelService:
         return model
 
     async def predict_single_image(
-        self, model_id: str, file_path: Path, confidence_threshold: float = 0.5
+        self, model_id: str, 
+        file_path: Path, 
+        confidence_threshold: float = 0.5
     ) -> tuple[List[Any], float]:
         model = self._get_model(model_id)
         image = cv2.imread(str(file_path))
@@ -65,11 +68,10 @@ class ModelService:
     ) -> str:
         model = self._get_model(model_id)
 
-        model_info = self.model_repo.get_model(model_id)
+        model_info = self.model_repository.get_model(model_id)
         if not model_info:
             raise ValueError(f"Model {model_id} not found")
 
-        # Build class mapping from model's supported_classes
         self._build_class_mapping(model_id, model_info.supported_classes)
 
         try:
@@ -79,10 +81,10 @@ class ModelService:
                 train_size = self._get_dataset_size_from_yaml(dataset_config)
                 annotations = []
             else:
-                annotations = self.annotation_repo.get_annotations_for_task(task_id)
+                annotations = self.annotation_repository.get_annotations_for_task(task_id)
                 if not annotations:
                     raise ValueError(f"No annotations for task {task_id}")
-                train_data = self._prepare_training_data(annotations, self.file_repo, model_id)
+                train_data = self._prepare_training_data(annotations, self.file_repository, model_id)
                 extra_kwargs = {}
                 train_size = len(train_data)
 
@@ -90,19 +92,18 @@ class ModelService:
             if new_classes and model.supports_incremental_learning():
                 logger.info("Adding new classes to model: %s", new_classes)
                 model.add_new_classes(new_classes)
-                # Update class mapping to include new classes
                 self._extend_class_mapping(model_id, new_classes)
 
             # Create or update session
-            existing_session = self.training_repo.get_session(session_id)
+            existing_session = self.training_session_repository.get_session(session_id)
             if existing_session:
-                self.training_repo.update_session(session_id, {
+                self.training_session_repository.update_session(session_id, {
                     'status': 'running',
                     'train_files_count': train_size,
                     'start_time': datetime.now()
                 })
             else:
-                self.training_repo.create_session({
+                self.training_session_repository.create_session({
                     'id': session_id,
                     'model_id': model_id,
                     'task_id': task_id,
@@ -126,9 +127,9 @@ class ModelService:
             )
 
             new_model_path = self._save_updated_model(model, model_id)
-            self.model_repo.update_model(model_id, {'model_path': new_model_path, 'updated_at': datetime.now()})
+            self.model_repository.update_model(model_id, {'model_path': new_model_path, 'updated_at': datetime.now()})
 
-            self.training_repo.update_session(session_id, {
+            self.training_session_repository.update_session(session_id, {
                 'status': 'completed',
                 'final_accuracy': metrics.get('mAP', 0),
                 'final_loss': metrics.get('loss', 0),
@@ -140,7 +141,7 @@ class ModelService:
             return session_id
         except Exception as e:
             logger.error("Training failed for session %s: %s", session_id, str(e), exc_info=True)
-            self.training_repo.update_session(session_id, {
+            self.training_session_repository.update_session(session_id, {
                 'status': 'failed',
                 'end_time': datetime.now(),
                 'error_message': str(e)
@@ -164,63 +165,74 @@ class ModelService:
         return count
 
     def _build_class_mapping(self, model_id: str, supported_classes: List[str]) -> None:
-        """Build class mapping from model's supported_classes list."""
         self._class_mappings[model_id] = {
             name: idx for idx, name in enumerate(supported_classes)
         }
 
     def _extend_class_mapping(self, model_id: str, new_classes: List[str]) -> None:
-        """Extend class mapping with new classes."""
         if model_id not in self._class_mappings:
             self._class_mappings[model_id] = {}
+
         current_max = max(self._class_mappings[model_id].values()) + 1 if self._class_mappings[model_id] else 0
+
         for cls in new_classes:
             self._class_mappings[model_id][cls] = current_max
             current_max += 1
 
     def _get_class_id(self, class_name: str, model_id: str) -> Optional[int]:
-        """Get class ID from dynamic mapping. Returns None if class is unknown."""
         mapping = self._class_mappings.get(model_id, {})
         class_id = mapping.get(class_name.lower())
+
         if class_id is None:
             logger.warning("Unknown class '%s' for model %s — skipping bounding box", class_name, model_id)
+
         return class_id
 
     def _prepare_training_data(self, annotations, file_repo, model_id: str) -> List[Dict]:
         training_data = []
         skipped_count = 0
+
         for ann in annotations:
             file_info = file_repo.get_by_id(ann.file_id)
+
             if not file_info:
                 continue
+
             yolo_anns = []
+
             for bbox in ann.bounding_boxes:
                 class_id = self._get_class_id(bbox.label, model_id)
+
                 if class_id is None:
                     skipped_count += 1
                     continue
+
                 cx = bbox.x + bbox.width / 2
                 cy = bbox.y + bbox.height / 2
                 yolo_anns.append([class_id, cx, cy, bbox.width, bbox.height])
+
             if yolo_anns:
                 training_data.append({
                     'image_path': file_info.file_path,
                     'annotations': yolo_anns
                 })
+
         if skipped_count:
             logger.warning("Skipped %d bounding boxes with unknown classes", skipped_count)
         return training_data
 
     def _extract_new_classes(self, annotations, supported_classes: List[str]) -> List[str]:
-        """Extract classes from annotations that are not in the model's supported_classes."""
         known_classes = {c.lower() for c in supported_classes}
         annotated_classes = set()
+
         for ann in annotations:
             for bbox in ann.bounding_boxes:
                 annotated_classes.add(bbox.label.lower())
         new_classes = list(annotated_classes - known_classes)
+
         if new_classes:
             logger.info("Found %d new classes not in model: %s", len(new_classes), new_classes)
+
         return new_classes
 
     def _save_updated_model(self, model: BaseDetectionModel, model_id: str) -> str:
@@ -230,5 +242,3 @@ class ModelService:
         new_path = models_dir / f"{model_id}_updated_{timestamp}.pt"
         model.save(str(new_path))
         return str(new_path)
-
-model_service = ModelService()
