@@ -113,6 +113,6 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
+    role = Column(String(20), default="user", nullable=False)
     files = relationship("File", back_populates="owner")
     tasks = relationship("Task", back_populates="owner")

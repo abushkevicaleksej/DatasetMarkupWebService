@@ -23,6 +23,7 @@ class FileProcessingService:
         self, 
         file_content: bytes, 
         original_filename: str, 
+        current_user_id: str,
         task_id: Optional[str] = None
     ) -> dict:
         if task_id:
@@ -48,7 +49,8 @@ class FileProcessingService:
                     "media_type": f.media_type.value,
                     "file_size": f.file_size,
                     "width": f.width,
-                    "height": f.height
+                    "height": f.height,
+                    "user id": current_user_id
                 }
                 for f in result.extracted_files
             ]

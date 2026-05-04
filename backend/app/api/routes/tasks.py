@@ -5,10 +5,10 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 
 from app.domain.entities.annotation_task import TaskCreateRequest, TaskResponse
-from app.infrastructure.utils.dependencies import get_task_service
+from app.infrastructure.utils.dependencies import get_task_service, get_current_user
 from app.application.services.task_service import TaskService
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)]) 
 
 BASE_DIR = Path(__file__).parent.parent.parent
 
@@ -41,6 +41,7 @@ async def create_task(
         task = service.task_repository.create(
             name=task_data.name,
             description=task_data.description,
+            user_id="str",
             file_ids=task_data.file_ids or []
         )
 

@@ -17,40 +17,37 @@ class FileRepository:
         self.db.execute(stmt)
         self.db.commit()    
 
-    def create(self, file_info: FileInfo) -> File:
-        db_file = File(
-            id=str(file_info.id),
-            original_filename=file_info.original_filename,
-            file_path=str(file_info.file_path),
-            media_type=file_info.media_type.value,
-            mime_type=file_info.mime_type,
-            file_size=file_info.file_size,
-            width=file_info.width,
-            height=file_info.height,
-            duration=file_info.duration,
-            extracted_from=str(file_info.extracted_from) if file_info.extracted_from else None
-        )
-        
-        self.db.add(db_file)
+    def create(self, **kwargs) -> File:
+        file = File(**kwargs)
+        self.db.add(file)
         self.db.commit()
-        self.db.refresh(db_file)
-        return db_file
+        self.db.refresh(file)
+        return file
     
 
-    def get_by_id(self, file_id: str) -> Optional[File]:
-        return self.db.query(File).filter(File.id == file_id).first()
+    def get_by_id(self, file_id: str, user_id: Optional[str] = None) -> Optional[File]:
+        query = self.db.query(File).filter(File.id == file_id)
+        if user_id is not None:
+            query = query.filter(File.user_id == user_id)
+        return query.first()
     
 
     def get_by_ids(self, file_ids: List[str]) -> List[File]:
         return self.db.query(File).filter(File.id.in_(file_ids)).all()
     
 
-    def get_all(self) -> List[File]:
-        return self.db.query(File).all()
+    def get_all(self, user_id: Optional[str] = None) -> List[File]:
+        query = self.db.query(File)
+        if user_id is not None:
+            query = query.filter(File.user_id == user_id)
+        return query.all()
     
 
-    def delete(self, file_id: str) -> bool:
-        file = self.get_by_id(file_id)
+    def delete(self, file_id: str, user_id: Optional[str] = None) -> bool:
+        query = self.db.query(File).filter(File.id == file_id)
+        if user_id is not None:
+            query = query.filter(File.user_id == user_id)
+        file = query.first()
         if file:
             self.db.delete(file)
             self.db.commit()

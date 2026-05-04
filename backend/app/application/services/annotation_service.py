@@ -5,7 +5,7 @@ from app.infrastructure.repositories.annotation_repository import AnnotationRepo
 from app.infrastructure.repositories.file_repository import FileRepository
 from app.domain.entities.annotation import Annotation, AnnotationCreateRequest
 
-from app.settings import SAM2_URL
+from app.core.config import settings
 
 class AnnotationService:
     def __init__(self, annotation_repository: AnnotationRepository, file_repository: FileRepository):
@@ -84,7 +84,7 @@ class AnnotationService:
             with open(file_info.file_path, "rb") as f:
                 files = {"file": (file_info.original_filename, f, file_info.mime_type)}
                 payload = {"x": x, "y": y}
-                response = await client.post(SAM2_URL, files=files, data=payload)
+                response = await client.post(settings.SAM2_URL, files=files, data=payload)
             if response.status_code != 200:
                 raise RuntimeError(f"SAM2 error: {response.text}")
             result = response.json()

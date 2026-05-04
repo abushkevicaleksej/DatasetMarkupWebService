@@ -4,11 +4,11 @@ from fastapi import APIRouter, HTTPException, Depends
 
 from app.domain.entities.annotation import AnnotationCreateRequest, SmartBBoxRequest, BoundingBoxUpdate
 
-from app.infrastructure.utils.dependencies import get_annotation_service
+from app.infrastructure.utils.dependencies import get_annotation_service, get_current_user
 
 from app.application.services.annotation_service import AnnotationService
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)]) 
 
 @router.post("/annotations")
 async def create_annotation(

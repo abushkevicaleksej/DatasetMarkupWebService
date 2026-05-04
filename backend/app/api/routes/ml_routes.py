@@ -14,14 +14,14 @@ from app.domain.ml_schemas import (
     TrainingSessionResponse
 )
 
-from app.infrastructure.utils.dependencies import get_model_service, get_export_service
+from app.infrastructure.utils.dependencies import get_model_service, get_export_service, get_current_user
 
 from app.application.services.export_service import ExportService
 from app.application.services.model_service import ModelService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)]) 
 
 @router.get("/models", response_model=List[MLModelResponse])
 async def get_models(service: Annotated[ModelService, Depends(get_model_service)]):

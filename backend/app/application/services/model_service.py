@@ -16,7 +16,7 @@ from app.domain.entities.base_detection_model import BaseDetectionModel
 from app.application.services.model_factory import ModelFactory, ModelFramework
 from app.application.services.export_service import ExportService
 
-from app.settings import VALIDATION_URL
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -257,7 +257,7 @@ class ModelService:
             with open(model_path, "rb") as f:
                 files = {"model_file": f}
                 data = {"model_type": model_data.framework.value}
-                response = await client.post(VALIDATION_URL, files=files, data=data)
+                response = await client.post(settings.VALIDATION_URL, files=files, data=data)
                 return response
             
     async def predict_and_save(self, request) -> List[PredictionResponse]:

@@ -4,10 +4,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 
-from app.infrastructure.utils.dependencies import get_export_service
+from app.infrastructure.utils.dependencies import get_export_service, get_current_user
 from app.application.services.export_service import ExportService
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)]) 
 
 @router.get("/api/tasks/{task_id}/export/yolo")
 async def export_task_dataset(

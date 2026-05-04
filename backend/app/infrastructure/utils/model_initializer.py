@@ -1,7 +1,11 @@
 import logging
 
 from app.infrastructure.database import get_db
+
+from app.application.services.auth_service import AuthService
+
 from app.infrastructure.repositories.ml_model_repository import MLModelRepository
+from app.infrastructure.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 
@@ -74,3 +78,14 @@ def initialize_predefined_models():
                 logger.info("Created predefined model: %s", model_data['name'])
             except Exception as e:
                 logger.warning("Failed to create predefined model %s: %s", model_data['name'], str(e))
+
+def initialize_predefined_user():
+    db = next(get_db())
+    admin = UserRepository(db).get_by_username("admin")
+    if not admin:
+        UserRepository(db).create(
+            username="admin",
+            email="admin@example.com",
+            hashed_password=AuthService.hash_password("admin123"),
+            role="admin"
+        )
