@@ -1,4 +1,14 @@
-from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey, Text, Table
+from sqlalchemy import (
+    Column, 
+    String, 
+    Integer, 
+    Boolean, 
+    Float, 
+    DateTime, 
+    ForeignKey, 
+    Text, 
+    Table
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 import uuid
@@ -39,6 +49,9 @@ class File(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    user_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
+    owner = relationship("User", back_populates="files")
+
 
 class Task(Base):
     __tablename__ = 'tasks'
@@ -54,6 +67,9 @@ class Task(Base):
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
+    owner = relationship("User", back_populates="tasks")
 
 
 class Annotation(Base):
@@ -86,3 +102,17 @@ class BoundingBox(Base):
     annotation = relationship("Annotation", back_populates="bounding_boxes")
     
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class User(Base):
+    __tablename__ = 'users'
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    username = Column(String(50), unique=True, nullable=False, index=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    files = relationship("File", back_populates="owner")
+    tasks = relationship("Task", back_populates="owner")

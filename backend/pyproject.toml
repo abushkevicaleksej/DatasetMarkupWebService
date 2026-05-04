@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "alembic>=1.18.4",
     "httpx>=0.28.1",
     "opencv-python>=4.13.0.92",
 ]
