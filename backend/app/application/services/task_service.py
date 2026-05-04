@@ -1,7 +1,6 @@
-from typing import List, Optional
+from typing import List
 
 from app.infrastructure.repositories.task_repository import TaskRepository
-from app.infrastructure.database import get_db
 
 class TaskService:
     def __init__(self, task_repository: TaskRepository):

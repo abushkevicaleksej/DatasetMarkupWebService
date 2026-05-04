@@ -1,15 +1,11 @@
-from pydantic import BaseModel
-from typing import Optional, List, Annotated
+from typing import Annotated
 from pathlib import Path
-from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Depends
-from fastapi.responses import HTMLResponse, JSONResponse
-from sqlalchemy.orm import Session
+from fastapi.responses import JSONResponse
 
 from app.domain.entities.annotation_task import TaskCreateRequest, TaskResponse
 from app.infrastructure.utils.dependencies import get_task_service
-from app.domain.entities.annotation import BoundingBox
 from app.application.services.task_service import TaskService
 
 router = APIRouter()

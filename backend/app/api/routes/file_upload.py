@@ -2,10 +2,6 @@ from pathlib import Path
 from typing import Optional, Annotated
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Depends
-from sqlalchemy import update
-
-from app.domain.models import Task
-from app.domain.models import File as FileModel
 
 from app.infrastructure.utils.dependencies import get_file_processing_service
 from app.application.services.file_processing_service import FileProcessingService

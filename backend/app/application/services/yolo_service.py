@@ -6,10 +6,6 @@ import cv2
 from ultralytics import YOLO
 
 from app.domain.ml_schemas import BoundingBoxPrediction, PredictionResponse
-from app.infrastructure.repositories.ml_model_repository import MLModelRepository, TrainingSessionRepository
-from app.infrastructure.repositories.file_repository import FileRepository
-from app.infrastructure.repositories.annotation_repository import AnnotationRepository
-from app.infrastructure.database import get_db
 
 class YOLOService:
     def __init__(self, model_repository, training_repo, annotation_repo, file_repo):
@@ -216,7 +212,7 @@ class YOLOService:
             'bird': 14, 'cat': 15, 'dog': 16, 'horse': 17,
             'sheep': 18, 'cow': 19, 'elephant': 20, 'bear': 21,
             'zebra': 22, 'giraffe': 23
-        }
+        } # TODO: bad
         return class_mapping.get(class_name.lower(), 0)
 
     def _save_updated_model(self, model, original_model_info) -> str:

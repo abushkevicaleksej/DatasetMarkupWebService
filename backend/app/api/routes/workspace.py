@@ -1,10 +1,8 @@
 from typing import Annotated
 from pathlib import Path
 
-from sqlalchemy.orm import Session
-
 from fastapi import APIRouter, HTTPException, Depends
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import FileResponse
 
 from app.application.services.file_processing_service import FileProcessingService
 from app.infrastructure.utils.dependencies import get_file_processing_service

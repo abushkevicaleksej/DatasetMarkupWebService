@@ -1,10 +1,9 @@
 from typing import List, Dict
+
+import yaml
 from pathlib import Path
 
 def load_yolo_dataset(data_yaml: str) -> List[Dict]:
-    import yaml
-    from pathlib import Path
-    import cv2
 
     with open(data_yaml, 'r') as f:
         cfg = yaml.safe_load(f)

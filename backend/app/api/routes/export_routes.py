@@ -3,7 +3,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
-from sqlalchemy.orm import Session
 
 from app.infrastructure.utils.dependencies import get_export_service
 from app.application.services.export_service import ExportService

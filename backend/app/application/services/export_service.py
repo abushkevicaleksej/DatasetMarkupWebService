@@ -4,10 +4,7 @@ import tempfile
 import zipfile
 import yaml
 from pathlib import Path
-from typing import List, Dict, Optional
 from collections import defaultdict
-
-from sqlalchemy.orm import Session
 
 from app.infrastructure.repositories.task_repository import TaskRepository
 from app.infrastructure.repositories.file_repository import FileRepository
@@ -18,7 +15,6 @@ class ExportService:
         self.file_repo = file_repository
 
     def _prepare_yolo_structure(self, task_id: str, output_dir: Path) -> str:
-
         task = self.task_repo.get_by_id(task_id)
         if not task:
             raise ValueError("Task not found")

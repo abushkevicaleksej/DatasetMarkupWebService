@@ -16,6 +16,8 @@ from app.domain.entities.base_detection_model import BaseDetectionModel
 from app.application.services.model_factory import ModelFactory, ModelFramework
 from app.application.services.export_service import ExportService
 
+from app.settings import VALIDATION_URL
+
 logger = logging.getLogger(__name__)
 
 class ModelService:
@@ -97,7 +99,6 @@ class ModelService:
                 model.add_new_classes(new_classes)
                 self._extend_class_mapping(model_id, new_classes)
 
-            # Create or update session
             existing_session = self.training_session_repository.get_session(session_id)
             if existing_session:
                 self.training_session_repository.update_session(session_id, {
@@ -252,12 +253,11 @@ class ModelService:
         if not model_path.exists():
             raise ValueError("Model file not found")
         
-        validation_url = "http://localhost:3033/validate"
         async with httpx.AsyncClient() as client:
             with open(model_path, "rb") as f:
                 files = {"model_file": f}
                 data = {"model_type": model_data.framework.value}
-                response = await client.post(validation_url, files=files, data=data)
+                response = await client.post(VALIDATION_URL, files=files, data=data)
                 return response
             
     async def predict_and_save(self, request) -> List[PredictionResponse]:

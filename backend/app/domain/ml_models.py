@@ -6,7 +6,6 @@ from sqlalchemy.orm import relationship
 
 from app.domain.models import Base
 
-
 class MLModel(Base):
     __tablename__ = 'ml_models'
 
@@ -35,7 +34,6 @@ class MLModel(Base):
 
     training_sessions = relationship("TrainingSession", back_populates="model")
     predictions = relationship("Prediction", back_populates="model")
-
 
 class TrainingSession(Base):
     __tablename__ = 'training_sessions'
@@ -66,7 +64,6 @@ class TrainingSession(Base):
     model = relationship("MLModel", back_populates="training_sessions")
     task = relationship("Task")
 
-
 class Prediction(Base):
     __tablename__ = 'predictions'
 
@@ -83,7 +80,6 @@ class Prediction(Base):
     file = relationship("File")
     task = relationship("Task")
     bounding_boxes = relationship("PredictionBoundingBox", back_populates="prediction", cascade="all, delete-orphan")
-
 
 class PredictionBoundingBox(Base):
     __tablename__ = 'prediction_bounding_boxes'

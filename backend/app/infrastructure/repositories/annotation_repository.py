@@ -12,7 +12,7 @@ class AnnotationRepository:
         self.db = db
     
 
-    def create_annotation(self, file_id: str, task_id: str, bounding_boxes: List[Dict]) -> "Annotation":  # ваш dataclass
+    def create_annotation(self, file_id: str, task_id: str, bounding_boxes: List[Dict]) -> "Annotation":
         db_annotation = Annotation(
             file_id=file_id,
             task_id=task_id

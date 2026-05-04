@@ -1,15 +1,12 @@
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Depends
-import httpx
-from PIL import Image
 
-from app.domain.entities.annotation import AnnotationCreateRequest, SmartBBoxRequest, BoundingBoxCreate, BoundingBoxUpdate
+from app.domain.entities.annotation import AnnotationCreateRequest, SmartBBoxRequest, BoundingBoxUpdate
 
-from app.infrastructure.utils.dependencies import get_annotation_service, get_model_service
+from app.infrastructure.utils.dependencies import get_annotation_service
 
 from app.application.services.annotation_service import AnnotationService
-from app.application.services.model_service import ModelService
 
 router = APIRouter()
 

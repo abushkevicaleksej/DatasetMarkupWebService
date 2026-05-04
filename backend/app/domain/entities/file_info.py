@@ -4,12 +4,10 @@ from enum import Enum
 from typing import List, Optional, Dict
 from uuid import UUID
 
-
 class MediaType(Enum):
     IMAGE = "image"
     VIDEO = "video"
     ARCHIVE = "archive"
-
 
 @dataclass
 class FileInfo:
@@ -25,7 +23,6 @@ class FileInfo:
     extracted_from: Optional[UUID] = None
     ml_processed: bool = False
 
-
 @dataclass
 class ProcessingResult:
     success: bool
@@ -33,4 +30,3 @@ class ProcessingResult:
     error_message: Optional[str] = None
     processing_time: float = 0.0
     ml_predictions: Optional[List[Dict]] = None
-

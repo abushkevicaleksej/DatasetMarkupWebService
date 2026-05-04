@@ -1,11 +1,8 @@
 from typing import List, Annotated
 from pathlib import Path
 import logging
-import uuid
-from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
-import httpx
 
 from app.domain.ml_schemas import (
     MLModelCreate, 

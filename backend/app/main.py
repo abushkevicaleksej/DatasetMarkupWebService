@@ -1,8 +1,5 @@
-from pathlib import Path
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from app.api.routers import create_api_router
 from app.infrastructure.database import create_tables

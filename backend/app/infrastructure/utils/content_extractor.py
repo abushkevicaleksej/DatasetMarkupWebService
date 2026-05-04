@@ -1,7 +1,6 @@
 import tempfile
 from pathlib import Path
 from typing import List, Tuple
-import asyncio
 
 from app.domain.interfaces.file_processor import ExtractorProcessor
 

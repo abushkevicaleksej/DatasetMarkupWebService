@@ -1,5 +1,4 @@
 from typing import List, Dict, Any, Optional
-from pathlib import Path
 import random
 import logging
 
@@ -12,7 +11,6 @@ from torch.utils.data import Dataset, DataLoader
 
 import cv2
 import numpy as np
-from PIL import Image
 
 from app.domain.entities.base_detection_model import BaseDetectionModel
 from app.domain.ml_schemas import BoundingBoxPrediction
