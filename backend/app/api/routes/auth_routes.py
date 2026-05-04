@@ -1,15 +1,14 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Form
-from sqlalchemy.orm import Session
 
+from app.domain.models import User
 from app.domain.entities.users import UserCreate, UserResponse, Token, TokenRefresh
 from app.application.services.auth_service import AuthService
-from app.infrastructure.repositories.user_repository import UserRepository
 
-from app.infrastructure.utils.dependencies import get_auth_service
+from app.infrastructure.utils.dependencies import get_auth_service, get_current_user
 
-router = APIRouter(prefix="/api/auth", tags=["auth"])
+router = APIRouter()
 
 @router.post("/register", response_model=UserResponse, status_code=201)
 async def register(user_data: UserCreate, service: Annotated[AuthService, Depends(get_auth_service)]):
@@ -46,3 +45,12 @@ async def refresh_token(
         return Token(access_token=new_access, refresh_token=new_refresh, token_type="bearer")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/me", response_model=UserResponse)
+async def get_me(current_user: User = Depends(get_current_user)):
+    return UserResponse(
+        id=current_user.id,
+        username=current_user.username,
+        email=current_user.email,
+        is_active=current_user.is_active
+    )

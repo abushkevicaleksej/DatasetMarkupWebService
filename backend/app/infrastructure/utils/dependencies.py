@@ -54,7 +54,7 @@ def get_file_processing_service(db: Session = Depends(get_db)) -> FileProcessing
 
     return FileProcessingService(file_repo, task_repo)
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/routes/login")
 
 def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
     user_repo = UserRepository(db)

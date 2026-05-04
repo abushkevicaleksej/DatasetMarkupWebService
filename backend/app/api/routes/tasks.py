@@ -4,6 +4,8 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 
+from app.domain.models import User
+
 from app.domain.entities.annotation_task import TaskCreateRequest, TaskResponse
 from app.infrastructure.utils.dependencies import get_task_service, get_current_user
 from app.application.services.task_service import TaskService
@@ -13,8 +15,11 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 BASE_DIR = Path(__file__).parent.parent.parent
 
 @router.get("/api/tasks", response_class=JSONResponse)
-async def get_tasks(service: Annotated[TaskService, Depends(get_task_service)]):
-    tasks = service.task_repository.get_all()
+async def get_tasks(
+    service: Annotated[TaskService, Depends(get_task_service)],
+    current_user: User = Depends(get_current_user)
+):
+    tasks = service.task_repository.get_all(str(current_user.id))
 
     response = []
     for task in tasks:
@@ -27,7 +32,8 @@ async def get_tasks(service: Annotated[TaskService, Depends(get_task_service)]):
                 file_count=len(task.files),
                 annotation_count=len(task.annotations),
                 created_at=task.created_at.isoformat(),
-                updated_at=task.updated_at.isoformat()
+                updated_at=task.updated_at.isoformat(),
+                user_id=current_user.id
             )
         )
     return response
@@ -35,13 +41,14 @@ async def get_tasks(service: Annotated[TaskService, Depends(get_task_service)]):
 @router.post("/api/tasks", response_model=TaskResponse)
 async def create_task(
     task_data: TaskCreateRequest, 
-    service: Annotated[TaskService, Depends(get_task_service)]
+    service: Annotated[TaskService, Depends(get_task_service)],
+    current_user: User = Depends(get_current_user)
 ):
     try:
         task = service.task_repository.create(
             name=task_data.name,
             description=task_data.description,
-            user_id="str",
+            user_id=current_user.id,
             file_ids=task_data.file_ids or []
         )
 
@@ -53,7 +60,8 @@ async def create_task(
             file_count=len(task.files),
             annotation_count=0,
             created_at=task.created_at.isoformat(),
-            updated_at=task.updated_at.isoformat()
+            updated_at=task.updated_at.isoformat(),
+            user_id=task.user_id
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -63,12 +71,9 @@ async def get_task_files(
     task_id: str, 
     service: Annotated[TaskService, Depends(get_task_service)]
 ):
-    from app.domain.models import File, Task
-    task = service.task_repository.db.query(Task).filter(Task.id == task_id).first()
+    task = service.task_repository.get_by_id(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    
-    files = service.task_repository.db.query(File).filter(File.task_id == task_id).all()
     
     return [
         {
@@ -78,7 +83,7 @@ async def get_task_files(
             "file_path": file.file_path,
             "mime_type": file.mime_type
         }
-        for file in files
+        for file in task.files
     ]
 
 @router.get("/api/tasks/{task_id}/annotations")

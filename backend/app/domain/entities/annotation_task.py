@@ -22,6 +22,7 @@ class Task:
     files: List[FileInfo]
     annotations: List[Annotation]
     status: str
+    user_id: UUID
     created_at: datetime = None
     updated_at: datetime = None
 
@@ -35,6 +36,7 @@ class TaskCreateRequest(BaseModel):
     name: str
     description: Optional[str] = None
     file_ids: Optional[List[str]] = None
+    user_id: UUID
 
 class TaskResponse(BaseModel):
     id: str
@@ -45,3 +47,4 @@ class TaskResponse(BaseModel):
     annotation_count: int
     created_at: str
     updated_at: str
+    user_id: UUID

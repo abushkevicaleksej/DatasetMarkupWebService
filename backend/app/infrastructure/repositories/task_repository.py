@@ -26,12 +26,18 @@ class TaskRepository:
         return db_task
     
 
-    def get_by_id(self, task_id: str) -> Optional[Task]:
-        return self.db.query(Task).filter(Task.id == task_id).first()
+    def get_by_id(self, task_id: str, user_id: Optional[str] = None) -> Optional[Task]:
+        query = self.db.query(Task).filter(Task.id == task_id)
+        if user_id is not None:
+            query = query.filter(Task.user_id == user_id)
+        return query.first()
     
 
-    def get_all(self) -> List[Task]:
-        return self.db.query(Task).all()
+    def get_all(self, user_id: Optional[str] = None) -> List[Task]:
+        query = self.db.query(Task)
+        if user_id is not None:
+            query = query.filter(Task.user_id == user_id)
+        return query.all()
     
 
     def update_status(self, task_id: str, status: str) -> Optional[Task]:
@@ -53,9 +59,11 @@ class TaskRepository:
         return task
     
 
-    def delete(self, task_id: str) -> bool:
+    def delete(self, task_id: str, user_id: Optional[str] = None) -> bool:
+        query = self.db.query(Task).filter(Task.id == task_id)
+        if user_id is not None:
+            query = query.filter(Task.user_id == user_id)
         task = self.get_by_id(task_id)
-        print(task)
         if task:
             self.db.delete(task)
             self.db.commit()

@@ -6,24 +6,28 @@ import { ModelList } from '../components/ModelList';
 import { TaskList } from '../components/TaskList';
 import { Header } from '../components/Header';
 import { HelpPage } from '../components/HelpPage';
+import { AuthProvider } from './AuthContext';
+import { RequireAuth } from '../components/checkAuth'
 
 export default function App() {
   return (
-    <Router>
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1 min-h-0">
-          <Routes>
-            <Route path="/" element={<Navigate to="/auth" replace />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/upload" element={<FileUpload />} />
-            <Route path="/workspace" element={<Workspace />} />
-            <Route path="/models" element={<ModelList />} />
-            <Route path="/tasks" element={<TaskList />} />
-            <Route path="/help" element={<HelpPage />} />
-          </Routes>
-        </main>
-      </div>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <div className="min-h-screen flex flex-col">
+          <Header />
+          <main className="flex-1 min-h-0">
+            <Routes>
+              <Route path="/" element={<RequireAuth><Navigate to="/auth" replace /></RequireAuth>} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/upload" element={<RequireAuth><FileUpload /></RequireAuth>} />
+              <Route path="/workspace" element={<RequireAuth><Workspace /></RequireAuth>} />
+              <Route path="/models" element={<RequireAuth><ModelList /></RequireAuth>} />
+              <Route path="/tasks" element={<RequireAuth><TaskList /></RequireAuth>} />
+              <Route path="/help" element={<HelpPage />} />
+            </Routes>
+          </main>
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }

@@ -5,25 +5,25 @@ from uuid import uuid4
 import asyncio
 import time
 
+from app.domain.models import User
 from app.domain.entities.file_info import ProcessingResult, FileInfo
 from app.infrastructure.utils.content_extractor import ContentExtractor
 from app.infrastructure.file_processors.image_processor import ImageProcessor
 
 class FileProcessingService:
-    
-    def __init__(self, file_repository, task_repository):
+    def __init__(self, file_repository, task_repository, current_user: User):
         self.upload_dir = Path("uploads")
         self.upload_dir.mkdir(exist_ok=True)
         self.content_extractor = ContentExtractor()
         self.image_processor = ImageProcessor()
         self.file_repository = file_repository
         self.task_repository = task_repository
+        self.current_user = current_user
 
     async def upload_and_process(
         self, 
         file_content: bytes, 
-        original_filename: str, 
-        current_user_id: str,
+        original_filename: str,
         task_id: Optional[str] = None
     ) -> dict:
         if task_id:
@@ -50,7 +50,7 @@ class FileProcessingService:
                     "file_size": f.file_size,
                     "width": f.width,
                     "height": f.height,
-                    "user id": current_user_id
+                    "user id": self.current_user.id
                 }
                 for f in result.extracted_files
             ]

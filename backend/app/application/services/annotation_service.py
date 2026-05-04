@@ -1,6 +1,7 @@
 from PIL import Image
 import httpx
 
+from app.domain.models import User
 from app.infrastructure.repositories.annotation_repository import AnnotationRepository
 from app.infrastructure.repositories.file_repository import FileRepository
 from app.domain.entities.annotation import Annotation, AnnotationCreateRequest
@@ -8,11 +9,26 @@ from app.domain.entities.annotation import Annotation, AnnotationCreateRequest
 from app.core.config import settings
 
 class AnnotationService:
-    def __init__(self, annotation_repository: AnnotationRepository, file_repository: FileRepository):
+    def __init__(
+            self, 
+            annotation_repository: AnnotationRepository, 
+            file_repository: FileRepository, 
+            current_user: User
+        ):
         self.annotation_repository = annotation_repository
         self.file_repository = file_repository
+        self.current_user = current_user
+
+    def _check_file_ownership(self, file_id: str):
+        file = self.file_repository.get_by_id(file_id)
+        if not file:
+            raise ValueError("File not found")
+        if self.current_user.role != "admin" and file.user_id != self.current_user.id:
+            raise ValueError("Access denied to this file")
+        return file
 
     def create_annotation(self, request: AnnotationCreateRequest) -> Annotation:
+        self._check_file_ownership(request.file_id)
         bboxes_dicts = [
             {
                 "id": None,
@@ -38,6 +54,7 @@ class AnnotationService:
         return annotation
 
     async def create_smart_annotation(self, file_id: str, task_id: str, x: float, y: float) -> dict:
+        self._check_file_ownership(file_id)
         file_info = self.file_repository.get_by_id(file_id)
         if not file_info:
             raise ValueError("File not found")
@@ -93,6 +110,7 @@ class AnnotationService:
             return result["bbox"], result.get("score", 1.0)
 
     def get_annotations_for_file(self, file_id: str):
+        self._check_file_ownership(file_id)
         return self.annotation_repository.get_annotations_for_file(file_id)
     
     def get_annotations_for_task(self, task_id: str):
