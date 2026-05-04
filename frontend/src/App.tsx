@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Auth } from '../components/Auth';
 import { FileUpload } from '../components/FileUpload';
 import { Workspace } from '../components/Workspace';
 import { ModelList } from '../components/ModelList';
@@ -13,7 +14,8 @@ export default function App() {
         <Header />
         <main className="flex-1 min-h-0">
           <Routes>
-            <Route path="/" element={<Navigate to="/tasks" replace />} />
+            <Route path="/" element={<Navigate to="/auth" replace />} />
+            <Route path="/auth" element={<Auth />} />
             <Route path="/upload" element={<FileUpload />} />
             <Route path="/workspace" element={<Workspace />} />
             <Route path="/models" element={<ModelList />} />
