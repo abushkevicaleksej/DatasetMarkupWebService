@@ -19,7 +19,7 @@ async def get_tasks(
     service: Annotated[TaskService, Depends(get_task_service)],
     current_user: User = Depends(get_current_user)
 ):
-    tasks = service.task_repository.get_all(str(current_user.id))
+    tasks = service.get_all_tasks(current_user.id)
 
     response = []
     for task in tasks:
