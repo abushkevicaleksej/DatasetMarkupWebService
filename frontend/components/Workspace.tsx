@@ -9,6 +9,7 @@ import { ExportTaskDialog } from './workspace/ExportDialogTask';
 import { SaveTaskForm } from './workspace/SaveTaskForm';
 import { AnnotationsProvider } from './workspace/AnnotationsContext';
 import { ModelInferenceDialog } from '../components/ModelInferenceDialog';
+import apiClient from '../src/client';
 
 interface WorkspaceFile {
   id: string;
@@ -54,13 +55,13 @@ export function Workspace() {
   const fetchTaskFiles = async (taskId: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8000/api/routes/api/tasks/${taskId}/files`);
+      const response = await apiClient.get(`/api/tasks/${taskId}/files`);
       
-      if (!response.ok) {
+      if (!response.status) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const apiFiles = await response.json();
+      const apiFiles = await response.data;
       
       const workspaceFiles: WorkspaceFile[] = apiFiles.map((apiFile: any, index: number) => ({
         id: apiFile.id,
@@ -85,13 +86,13 @@ export function Workspace() {
   const fetchAllFiles = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/api/routes/files');
+      const response = await apiClient.get('/api/routes/files');
       
-      if (!response.ok) {
+      if (!response.status) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const apiFiles = await response.json();
+      const apiFiles = await response.data;
       
       const workspaceFiles: WorkspaceFile[] = apiFiles.map((apiFile: any, index: number) => ({
         id: apiFile.id,
@@ -117,20 +118,14 @@ export function Workspace() {
     try {
       setSavingTask(true);
       
-      const response = await fetch('http://localhost:8000/api/routes/api/tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(taskData),
-      });
+      const response = await apiClient.post('/api/routes/api/tasks');
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!response.status) {
+        const errorData = await response.data;
         throw new Error(errorData.detail || 'Ошибка при создании задачи');
       }
 
-      const createdTask: TaskResponse = await response.json();
+      const createdTask: TaskResponse = await response.data;
       
       console.log('Задача успешно создана:', createdTask);
       

@@ -20,6 +20,26 @@ class FileProcessingService:
         self.task_repository = task_repository
         self.current_user = current_user
 
+    def _get_target_user_id(self):
+        return None if self.current_user.role == "admin" else self.current_user.id
+
+    def get_all_files(self):
+        return self.file_repository.get_all(self._get_target_user_id())
+
+    def get_file(self, file_id: str):
+        file = self.file_repository.get_by_id(file_id, self._get_target_user_id())
+        if not file:
+            raise ValueError("File not found or access denied")
+        return file
+    
+    def update_file(self, file_id: str):
+        self.get_file(file_id)
+        return self.file_repository.update_file(file_id)
+        
+    def delete_file(self, file_id: str):
+        self.get_file(file_id)
+        return self.file_repository.delete(file_id)
+
     async def upload_and_process(
         self, 
         file_content: bytes, 

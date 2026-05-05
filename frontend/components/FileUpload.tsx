@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Upload, FileIcon, X, Loader2 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import apiClient from '../src/client';
 
 export function FileUpload() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -41,19 +42,16 @@ export function FileUpload() {
         formData.append('file', file);
         if (taskId) formData.append('task_id', taskId); 
 
-        const response = await fetch('http://localhost:8000/api/routes/upload', {
-          method: 'POST',
-          body: formData,
-        });
+        const response = await apiClient.post('/api/routes/upload');
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => null);
+        if (!response.status) {
+          const errorData = await response.data.catch(() => null);
           throw new Error(
             errorData?.detail || `Ошибка загрузки файла: ${response.status}`
           );
         }
 
-        const result = await response.json();
+        const result = await response.data;
         
         setUploadProgress(((index + 1) / selectedFiles.length) * 100);
         
@@ -75,7 +73,7 @@ export function FileUpload() {
       setUploadProgress(0);
     }
   };
-
+# TODO
   const handleSingleUpload = async () => {
     if (selectedFiles.length === 0) {
       setError('Пожалуйста, выберите файлы для загрузки');
@@ -91,19 +89,16 @@ export function FileUpload() {
       formData.append('file', file);
       if (taskId) formData.append('task_id', taskId); 
 
-      const response = await fetch('http://localhost:8000/api/routes/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      const response = await apiClient.post('/api/routes/upload');
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
+      if (!response.status) {
+        const errorData = await response.data.catch(() => null);
         throw new Error(
           errorData?.detail || `Ошибка загрузки: ${response.status}`
         );
       }
 
-      const result = await response.json();
+      const result = await response.data;
       if (taskId) formData.append('task_id', taskId);
       console.log('Файл успешно загружен:', result);
 

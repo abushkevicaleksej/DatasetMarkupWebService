@@ -1,22 +1,32 @@
 from typing import List
 
 from app.infrastructure.repositories.task_repository import TaskRepository
+from app.domain.models import User
 
 class TaskService:
-    def __init__(self, task_repository: TaskRepository):
+    def __init__(self, task_repository: TaskRepository, current_user: User):
         self.task_repository = task_repository
+        self.current_user = current_user
 
-    def create_task(self, name: str, description: str, user_id: str, file_ids: List[str] = None):
-        return self.task_repository.create(name, description, user_id, file_ids)
+    def _get_target_user_id(self):
+        return None if self.current_user.role == "admin" else self.current_user.id
+
+    def create_task(self, name: str, description: str, file_ids: List[str] = None):
+        return self.task_repository.create(name, description, self.current_user.id, file_ids)
     
     def get_task(self, task_id: str):
-        return self.task_repository.get_by_id(task_id)
+        task = self.task_repository.get_by_id(task_id, self._get_target_user_id())
+        if not task:
+            raise ValueError("Task not found or access denied")
+        return task
 
     def get_all_tasks(self):
-        return self.task_repository.get_all()
+        return self.task_repository.get_all(self._get_target_user_id())
 
     def update_task_status(self, task_id: str, status: str):
+        self.get_task(task_id) 
         return self.task_repository.update_status(task_id, status)
 
-    def add_files_to_task(self, task_id: str, file_ids: List[str]):        
-        return self.task_repository.add_files_to_task(task_id, file_ids)
+    def delete_task(self, task_id: str):
+        self.get_task(task_id)
+        return self.task_repository.delete(task_id)

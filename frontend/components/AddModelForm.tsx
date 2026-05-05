@@ -11,6 +11,7 @@ import { Loader2, Plus } from 'lucide-react';
 import { TagsInput } from './TagsInput';
 import { ModelType, ModelFramework, ModelFormData, InputSize } from './types/ml-types';
 import { Alert, AlertDescription } from './ui/alert';
+import apiClient from '../src/client';
 
 interface AddModelFormProps {
   onModelAdded: () => void;
@@ -50,16 +51,9 @@ export function AddModelForm({ onModelAdded }: AddModelFormProps) {
     setIsValidating(true);
     setValidationMessage(null);
     try {
-      const response = await fetch('http://localhost:8000/api/routes/models/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          model_path: path,
-          framework: formData.framework,
-         }),
-      });
-      const data = await response.json();
-      if (response.ok) {
+      const response = await apiClient.post('/api/routes/models/validate');
+      const data = await response.data;
+      if (response.status) {
         if (data.valid) {
           setIsValid(true);
           setValidationMessage('Модель прошла проверку ✓');
@@ -120,16 +114,7 @@ export function AddModelForm({ onModelAdded }: AddModelFormProps) {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/routes/models', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          supported_classes: [...new Set(formData.supported_classes)],
-        }),
-      });
+      const response = await apiClient.post('/api/routes/models');
 
       if (!response.ok) {
         const errorData = await response.json();

@@ -5,6 +5,7 @@ import { Badge } from './ui/badge';
 import { Box, CheckCircle2, Loader2, Trash2, Power, PowerOff, FileText, Settings } from 'lucide-react';
 import { AddModelForm } from './AddModelForm';
 import { ModelType, ModelFramework, InputSize } from './types/ml-types';
+import apiClient from '../src/client';
 
 interface Model {
   id: string;
@@ -44,14 +45,14 @@ export function ModelList() {
       setError(null);
       setLoading(true);
       
-      const response = await fetch("http://localhost:8000/api/routes/models");
+      const response = await apiClient.get("/api/routes/models");
       console.log('Ответ сервера:', response.status, response.statusText);
       
-      if (!response.ok) {
+      if (!response.status) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data = await response.json();
+      const data = await response.data;
       console.log('Полученные данные:', data);
       
       if (Array.isArray(data)) {
@@ -81,11 +82,9 @@ export function ModelList() {
     try {
       setDeletingModels(prev => new Set(prev).add(modelId));
       
-      const response = await fetch(`http://localhost:8000/api/routes/models/${modelId}`, {
-        method: 'DELETE',
-      });
+      const response = await apiClient.delete(`/api/routes/models/${modelId}`);
       
-      if (!response.ok) {
+      if (!response.status) {
         throw new Error(`Ошибка при удалении: ${response.status}`);
       }
       
@@ -109,14 +108,9 @@ export function ModelList() {
       setTogglingModels(prev => new Set(prev).add(modelId));
       
       const endpoint = currentStatus ? 'deactivate' : 'activate';
-      const response = await fetch(
-        `http://localhost:8000/api/routes/models/${modelId}/${endpoint}`,
-        {
-          method: 'POST',
-        }
-      );
+      const response = await apiClient.post(`/api/routes/models/${modelId}/${endpoint}`);
       
-      if (!response.ok) {
+      if (!response.data) {
         throw new Error(`Ошибка при изменении статуса: ${response.status}`);
       }
       

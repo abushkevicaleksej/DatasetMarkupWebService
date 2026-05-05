@@ -19,7 +19,8 @@ async def get_tasks(
     service: Annotated[TaskService, Depends(get_task_service)],
     current_user: User = Depends(get_current_user)
 ):
-    tasks = service.get_all_tasks(current_user.id)
+    print("here")
+    tasks = service.get_all_tasks()
 
     response = []
     for task in tasks:
@@ -42,13 +43,11 @@ async def get_tasks(
 async def create_task(
     task_data: TaskCreateRequest, 
     service: Annotated[TaskService, Depends(get_task_service)],
-    current_user: User = Depends(get_current_user)
 ):
     try:
-        task = service.task_repository.create(
+        task = service.create_task(
             name=task_data.name,
             description=task_data.description,
-            user_id=current_user.id,
             file_ids=task_data.file_ids or []
         )
 
@@ -71,7 +70,7 @@ async def get_task_files(
     task_id: str, 
     service: Annotated[TaskService, Depends(get_task_service)]
 ):
-    task = service.task_repository.get_by_id(task_id)
+    task = service.get_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
@@ -92,7 +91,7 @@ async def get_task_annotations(
     service: Annotated[TaskService, Depends(get_task_service)]
 ):
     try:
-        task = service.task_repository.get_by_id(task_id)
+        task = service.get_task(task_id)
         
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
@@ -116,7 +115,7 @@ async def delete_task(
     service: Annotated[TaskService, Depends(get_task_service)]
 ):
     try:
-        success = service.task_repository.delete(task_id)
+        success = service.delete_task(task_id)
         
         if not success:
             raise HTTPException(status_code=404, detail="Task not found")

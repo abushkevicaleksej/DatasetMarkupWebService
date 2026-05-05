@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import FileResponse
 
 from app.application.services.file_processing_service import FileProcessingService
-from app.infrastructure.utils.dependencies import get_file_processing_service
+from app.infrastructure.utils.dependencies import get_file_processing_service, get_current_user
 
 from app.domain.ml_schemas import (
     PredictionResponse
@@ -13,12 +13,12 @@ from app.domain.ml_schemas import (
 
 BASE_DIR = Path(__file__).parent.parent.parent
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)]) 
 
 @router.get("/files")
 async def get_all_files(service: Annotated[FileProcessingService, Depends(get_file_processing_service)]):
     try:
-        files = service.file_repository.get_all()
+        files = service.get_all_files()
 
         return [
             {
@@ -39,7 +39,7 @@ async def get_file(
     service: Annotated[FileProcessingService, Depends(get_file_processing_service)]
 ):
     try:
-        file_info = service.file_repository.get_by_id(file_id)
+        file_info = service.get_file(file_id)
         
         if not file_info:
             raise HTTPException(status_code=404, detail="File not found")
@@ -62,7 +62,7 @@ async def delete_file(
     service: Annotated[FileProcessingService, Depends(get_file_processing_service)]
 ):
     try:
-        success = service.file_repository.delete(file_id)
+        success = service.delete_file(file_id)
         
         if not success:
             raise HTTPException(status_code=404, detail="File not found")

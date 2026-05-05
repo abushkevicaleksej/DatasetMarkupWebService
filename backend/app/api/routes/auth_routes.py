@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Form
+from fastapi.security import OAuth2PasswordRequestForm
 
 from app.domain.models import User
 from app.domain.entities.users import UserCreate, UserResponse, Token, TokenRefresh
@@ -26,10 +27,9 @@ async def register(user_data: UserCreate, service: Annotated[AuthService, Depend
 @router.post("/login", response_model=Token)
 async def login(
     service: Annotated[AuthService, Depends(get_auth_service)],
-    username: str = Form(...),
-    password: str = Form(...)
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ):
-    auth_result = await service.authenticate(username, password)
+    auth_result = await service.authenticate(form_data.username, form_data.password)
     if not auth_result:
         raise HTTPException(status_code=401, detail="Incorrect username or password")
     user, access_token, refresh_token = auth_result

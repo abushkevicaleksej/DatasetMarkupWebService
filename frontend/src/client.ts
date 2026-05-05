@@ -49,8 +49,13 @@ export async function loginRequest(username: string, password: string) {
   const params = new URLSearchParams();
   params.append('username', username);
   params.append('password', password);
+  
   const { data } = await axios.post(`${API_BASE_URL}/api/routes/login`, params, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   });
+  
+  localStorage.setItem('access_token', data.access_token);
+  localStorage.setItem('refresh_token', data.refresh_token);
+  
   return data;
 }

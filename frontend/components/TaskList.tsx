@@ -5,6 +5,7 @@ import { Badge } from './ui/badge';
 import { ListTodo, Clock, CheckCircle2, Trash2, Loader2, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SaveTaskForm } from './workspace/SaveTaskForm';
+import apiClient from '../src/client';
 
 interface Task {
   id: string;
@@ -41,13 +42,9 @@ export function TaskList() {
 
   const handleCreateTask = async (taskData: { name: string; description?: string; file_ids: string[] }) => {
     try {
-      const response = await fetch('http://localhost:8000/api/routes/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(taskData),
-      });
-      if (!response.ok) throw new Error('Ошибка создания задачи');
-      const task: Task = await response.json();
+      const response = await apiClient.get('/api/routes/api/tasks');
+      if (!response.status) throw new Error('Ошибка создания задачи');
+      const task: Task = await response.data;
       setShowCreateTaskForm(false);
       navigate(`/upload?taskId=${task.id}`);
     } catch (err) {
@@ -61,13 +58,13 @@ export function TaskList() {
       setError(null);
       setLoading(true);
       
-      const response = await fetch("http://localhost:8000/api/routes/api/tasks");
+      const response = await apiClient.get('/api/routes/api/tasks');
       
-      if (!response.ok) {
+      if (!response.status) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data = await response.json();
+      const data = await response.data;
       setTasks(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка при загрузке задач');
@@ -85,11 +82,9 @@ export function TaskList() {
     try {
       setDeletingTasks(prev => new Set(prev).add(taskId));
       
-      const response = await fetch(`http://localhost:8000/api/routes/api/tasks/${taskId}`, {
-        method: 'DELETE',
-      });
+      const response = await apiClient.delete(`api/tasks/${taskId}`);
       
-      if (!response.ok) {
+      if (!response.status) {
         throw new Error(`Ошибка при удалении: ${response.status}`);
       }
       
