@@ -7,7 +7,14 @@ requires-python = ">=3.14"
 dependencies = [
     "alembic>=1.18.4",
     "bcrypt==4.0.1",
+    "fastapi[standard]>=0.136.1",
     "httpx>=0.28.1",
     "opencv-python>=4.13.0.92",
+    "passlib>=1.7.4",
+    "pillow>=12.2.0",
     "python-jose>=3.5.0",
+    "setuptools>=82.0.1",
+    "sqladmin>=0.25.0",
+    "ultralytics>=8.4.46",
+    "uvicorn>=0.46.0",
 ]

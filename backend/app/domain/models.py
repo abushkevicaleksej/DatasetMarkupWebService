@@ -39,7 +39,7 @@ class File(Base):
     height = Column(Integer, nullable=True)
     duration = Column(Float, nullable=True)
     extracted_from = Column(String(36), ForeignKey('files.id'), nullable=True)
-    task_id = Column(String(36), ForeignKey('tasks.id'), nullable=True)   # ← прямой FK
+    task_id = Column(String(36), ForeignKey('tasks.id'), nullable=True)
     
     task = relationship("Task", back_populates="files")
     
@@ -52,6 +52,9 @@ class File(Base):
     user_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
     owner = relationship("User", back_populates="files")
 
+    def __str__(self):
+        return self.original_filename
+
 
 class Task(Base):
     __tablename__ = 'tasks'
@@ -61,7 +64,7 @@ class Task(Base):
     description = Column(Text, nullable=True)
     status = Column(String(50), default='in progress')
     
-    files = relationship("File", back_populates="task")
+    files = relationship("File", back_populates="task", cascade="all, delete-orphan")
     
     annotations = relationship("Annotation", back_populates="task", cascade="all, delete-orphan")
     
@@ -70,6 +73,9 @@ class Task(Base):
 
     user_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
     owner = relationship("User", back_populates="tasks")
+
+    def __str__(self):
+        return self.name
 
 
 class Annotation(Base):
@@ -114,5 +120,8 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     role = Column(String(20), default="user", nullable=False)
-    files = relationship("File", back_populates="owner")
-    tasks = relationship("Task", back_populates="owner")
+    files = relationship("File", back_populates="owner", cascade="all, delete-orphan")
+    tasks = relationship("Task", back_populates="owner", cascade="all, delete-orphan")
+
+    def __str__(self):
+        return self.username
