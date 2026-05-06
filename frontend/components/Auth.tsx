@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -18,6 +18,14 @@ export function Auth() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { login, register } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) {
+    return <div>Загрузка...</div>;
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/tasks" replace />;
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({

@@ -40,7 +40,8 @@ export function FileUpload() {
       const uploadPromises = selectedFiles.map(async (file, index) => {
         const formData = new FormData();
         formData.append('file', file);
-        if (taskId) formData.append('task_id', taskId); 
+        if (taskId) formData.append('task_id', taskId);
+        console.log(taskId) 
 
         const response = await apiClient.post('/api/routes/upload', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
