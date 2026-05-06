@@ -1,10 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Form
+from fastapi import APIRouter, Depends, HTTPException, Form, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.domain.models import User
-from app.domain.entities.users import UserCreate, UserResponse, Token, TokenRefresh
+from app.domain.entities.users import UserCreate, UserResponse, Token, TokenRefresh, PasswordReset, PasswordResetRequest
 from app.application.services.auth_service import AuthService
 
 from app.infrastructure.utils.dependencies import get_auth_service, get_current_user
@@ -65,3 +65,23 @@ async def get_me(current_user: User = Depends(get_current_user)):
         email=str(current_user.email),
         is_active=bool(current_user.is_active)
     )
+
+# @router.post("/request-password-reset")
+# async def request_password_reset(
+#     reset_request: PasswordResetRequest,
+#     service: Annotated[AuthService, Depends(get_auth_service)],
+#     background_tasks: BackgroundTasks
+# ):
+#     user = service.user_repo.get_by_email(reset_request.email)
+#     if not user:
+#         return {"detail": "No user with given email is exist! Register first"}
+    
+#     token = service.create_access_token( )
+#     user.token = token
+
+# @router.post("/reset-password")
+# async def reset_password(
+#     reset_data: PasswordReset,
+#     service: Annotated[AuthService, Depends(get_auth_service)]
+# ):
+    

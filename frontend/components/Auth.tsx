@@ -51,9 +51,19 @@ export function Auth() {
       }
       navigate('/tasks');
     } catch (err: any) {
-      const message =
-        err.response?.data?.detail || err.message || 'Ошибка соединения';
-      setError(message);
+      if (err.response?.status === 422) {
+        const details = err.response.data.detail;
+        if (Array.isArray(details)) {
+          const passwordError = details.find(
+            (d: any) => d.loc[1] === 'password'
+          );
+          setError(passwordError?.msg || 'Ошибка в пароле');
+        } else {
+          setError(details);
+        }
+      } else {
+        setError(err.response?.data?.detail || 'Ошибка соединения');
+      }
     }
   };
 
