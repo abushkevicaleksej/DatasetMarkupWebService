@@ -17,8 +17,8 @@ class FileRepository:
         self.db.execute(stmt)
         self.db.commit()    
 
-    def create(self, **kwargs) -> File:
-        file = File(**kwargs)
+    def create(self, file_data: dict) -> File:
+        file = File(**file_data)
         self.db.add(file)
         self.db.commit()
         self.db.refresh(file)

@@ -1,6 +1,7 @@
 import React, { createContext, useState, useCallback, ReactNode } from 'react';
 import { BoundingBox, Annotation } from '../types/annotations';
 import { PredictionResponse } from '../types/ml';
+import apiClient from '../../src/client';
 
 interface AnnotationsContextType {
   annotations: Annotation[];
@@ -30,8 +31,8 @@ export function AnnotationsProvider({ children }: { children: ReactNode }) {
 
  const loadAnnotationsForFile = useCallback(async (fileId: string) => {
   try {
-    const response = await fetch(`http://localhost:8000/api/routes/annotations/file/${fileId}`);
-    if (!response.ok) {
+    const response = await apiClient.get(`/api/routes/annotations/file/${fileId}`);
+    if (!response.status) {
       if (response.status === 404) {
         setAnnotations([]);
         return;
@@ -39,7 +40,7 @@ export function AnnotationsProvider({ children }: { children: ReactNode }) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const data = await response.json();
+    const data = await response.data;
     
     const mergedMap = new Map<string, Annotation>();
     console.log(mergedMap)
@@ -112,15 +113,11 @@ export function AnnotationsProvider({ children }: { children: ReactNode }) {
         bounding_boxes: [boundingBoxData]
       };
 
-      const response = await fetch('http://localhost:8000/api/routes/annotations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(annotationData),
-      });
+      const response = await apiClient.post('/api/routes/annotations', annotationData);
 
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.status) throw new Error(await response.statusText);
 
-      const savedAnnotation = await response.json();
+      const savedAnnotation = await response.data;
 
       const newBoundingBox: BoundingBox = {
         id: savedAnnotation.bounding_boxes[0]?.id || Date.now().toString(),
@@ -185,16 +182,12 @@ export function AnnotationsProvider({ children }: { children: ReactNode }) {
         
         const dataToSend = { ...fullBbox, ...updates };
 
-        await fetch(`http://localhost:8000/api/routes/annotations/bbox/${bboxId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        await apiClient.put(`/api/routes/annotations/bbox/${bboxId}`, {
             x: dataToSend.x,
             y: dataToSend.y,
             width: dataToSend.width,
             height: dataToSend.height,
             label: dataToSend.label
-          }),
         });
       }
     } catch (error) {
@@ -220,12 +213,10 @@ export function AnnotationsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const response = await fetch(`http://localhost:8000/api/routes/annotations/${targetAnnotation.id}/bbox/${bboxId}`, {
-      method: 'DELETE',
-    });
+    const response = await apiClient.delete(`/api/routes/annotations/${targetAnnotation.id}/bbox/${bboxId}`);
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+    if (!response.data) {
+      throw new Error(`HTTP ${response.status}: ${await response.statusText}`);
     }
 
     const updatedAnnotations = annotations

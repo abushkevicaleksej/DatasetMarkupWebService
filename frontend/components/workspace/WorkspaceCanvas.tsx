@@ -4,6 +4,7 @@ import { useAnnotations } from '../hooks/useAnnotations';
 import { BoundingBox } from '../types/annotations';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
+import apiClient from '../../src/client';
 
 interface WorkspaceFile {
   id: string;
@@ -62,9 +63,12 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
     const loadImage = async () => {
       setImageLoading(true);
       try {
-        const imageResponse = await fetch(`http://localhost:8000/api/routes/files/${currentFile.id}`);
-        if (imageResponse.ok) {
-          const blob = await imageResponse.blob();
+        const imageResponse = await apiClient.get(
+          `/api/routes/files/${currentFile.id}`,
+          { responseType: 'blob' }
+        );
+        if (imageResponse.status) {
+          const blob = await imageResponse.data;
           const url = URL.createObjectURL(blob);
           setImageUrl(url);
           const img = new Image();
@@ -167,21 +171,17 @@ export function WorkspaceCanvas({ currentFile, activeTool, taskId }: WorkspaceCa
       const pixelX = Math.round(normPoint.x * imgDimensions.width);
       const pixelY = Math.round(normPoint.y * imgDimensions.height);
 
-      const response = await fetch('http://localhost:8000/api/routes/annotations/smart-bbox', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const response = await apiClient.post('/api/routes/annotations/smart-bbox', {
           file_id: currentFile.id,
           task_id: taskId,
           x: pixelX,
           y: pixelY
-        })
       });
 
-      if (response.ok) {
+      if (response.status) {
         await loadAnnotationsForFile(currentFile.id);
       } else {
-        const error = await response.json();
+        const error = await response.data;
         console.error("Ошибка детекции:", error.detail);
       }
     } catch (err) {

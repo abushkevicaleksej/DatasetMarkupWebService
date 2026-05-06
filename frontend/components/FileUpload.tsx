@@ -42,7 +42,9 @@ export function FileUpload() {
         formData.append('file', file);
         if (taskId) formData.append('task_id', taskId); 
 
-        const response = await apiClient.post('/api/routes/upload');
+        const response = await apiClient.post('/api/routes/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
 
         if (!response.status) {
           const errorData = await response.data.catch(() => null);
@@ -73,7 +75,7 @@ export function FileUpload() {
       setUploadProgress(0);
     }
   };
-# TODO
+
   const handleSingleUpload = async () => {
     if (selectedFiles.length === 0) {
       setError('Пожалуйста, выберите файлы для загрузки');
@@ -89,7 +91,9 @@ export function FileUpload() {
       formData.append('file', file);
       if (taskId) formData.append('task_id', taskId); 
 
-      const response = await apiClient.post('/api/routes/upload');
+      const response = await apiClient.post('/api/routes/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
 
       if (!response.status) {
         const errorData = await response.data.catch(() => null);

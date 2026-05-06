@@ -12,6 +12,7 @@ dependencies = [
     "opencv-python>=4.13.0.92",
     "passlib>=1.7.4",
     "pillow>=12.2.0",
+    "pydantic>=2.13.3",
     "python-jose>=3.5.0",
     "setuptools>=82.0.1",
     "sqladmin>=0.25.0",

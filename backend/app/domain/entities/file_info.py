@@ -17,7 +17,6 @@ class FileInfo:
     media_type: MediaType
     mime_type: str
     file_size: int
-    user_id: UUID
     width: Optional[int] = None
     height: Optional[int] = None
     duration: Optional[float] = None

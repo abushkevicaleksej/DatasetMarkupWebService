@@ -16,16 +16,12 @@ router = APIRouter(dependencies=[Depends(get_current_user)])
 async def upload_file(
     service: Annotated[FileProcessingService, Depends(get_file_processing_service)],
     file: UploadFile = File(...),
-    task_id: Optional[str] = Form(None),
-    current_user: User = Depends(get_current_user)
 ):
-    file_content = await file.read()
+    file_data = await file.read()
     try:
         result = await service.upload_and_process(
-            file_content, 
-            file.filename, 
-            str(current_user.id), 
-            str(task.id)
+            file_content=file_data, 
+            original_filename=str(file.filename),
         )
         return result
     except ValueError as e:

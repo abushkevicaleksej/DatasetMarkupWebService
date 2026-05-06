@@ -36,7 +36,6 @@ class TaskCreateRequest(BaseModel):
     name: str
     description: Optional[str] = None
     file_ids: Optional[List[str]] = None
-    user_id: UUID
 
 class TaskResponse(BaseModel):
     id: str

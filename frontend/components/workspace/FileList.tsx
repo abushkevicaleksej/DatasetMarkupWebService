@@ -16,6 +16,7 @@ import {
 } from '../ui/alert-dialog';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
+import apiClient from '../../src/client';
 
 interface WorkspaceFile {
   id: string;
@@ -73,11 +74,9 @@ const handleDeleteFile = async (fileId: string, fileName: string) => {
     if (onFileDelete) {
       await onFileDelete(fileId);
     } else {
-      const response = await fetch(`http://localhost:8000/api/routes/files/${fileId}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
+      const response = await apiClient.delete(`http://localhost:8000/api/routes/files/${fileId}`);
+      if (!response.data) {
+        const errorData = await response.data;
         throw new Error(errorData.detail || 'Ошибка при удалении файла');
       }
       toast.success(`Файл "${fileName}" успешно удален`);

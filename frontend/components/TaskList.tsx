@@ -42,7 +42,9 @@ export function TaskList() {
 
   const handleCreateTask = async (taskData: { name: string; description?: string; file_ids: string[] }) => {
     try {
-      const response = await apiClient.get('/api/routes/api/tasks');
+      console.log(JSON.stringify(taskData))
+      const response = await apiClient.post('/api/routes/api/tasks', taskData);
+      console.log(response.status)
       if (!response.status) throw new Error('Ошибка создания задачи');
       const task: Task = await response.data;
       setShowCreateTaskForm(false);
@@ -82,7 +84,7 @@ export function TaskList() {
     try {
       setDeletingTasks(prev => new Set(prev).add(taskId));
       
-      const response = await apiClient.delete(`api/tasks/${taskId}`);
+      const response = await apiClient.delete(`/api/routes/api/tasks/${taskId}`);
       
       if (!response.status) {
         throw new Error(`Ошибка при удалении: ${response.status}`);

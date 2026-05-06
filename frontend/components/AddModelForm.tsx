@@ -51,7 +51,12 @@ export function AddModelForm({ onModelAdded }: AddModelFormProps) {
     setIsValidating(true);
     setValidationMessage(null);
     try {
-      const response = await apiClient.post('/api/routes/models/validate');
+      const response = await apiClient.post('/api/routes/models/validate',
+        {
+          model_path: path,
+          framework: formData.framework
+        }
+      );
       const data = await response.data;
       if (response.status) {
         if (data.valid) {
@@ -114,14 +119,19 @@ export function AddModelForm({ onModelAdded }: AddModelFormProps) {
     }
 
     try {
-      const response = await apiClient.post('/api/routes/models');
+      const response = await apiClient.post('/api/routes/models',
+        {
+          ...formData,
+          supported_classes: [...new Set(formData.supported_classes)],
+        }
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!response.status) {
+        const errorData = await response.data;
         throw new Error(errorData.detail || 'Ошибка при создании модели');
       }
 
-      const newModel = await response.json();
+      const newModel = await response.data;
       console.log('Модель создана:', newModel);
       
       setOpen(false);

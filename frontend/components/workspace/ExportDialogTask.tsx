@@ -10,8 +10,8 @@ import {
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-
 import { Download, Loader2, AlertCircle } from 'lucide-react';
+import apiClient from '../../src/client';
 
 interface ExportTaskDialogProps {
   isOpen: boolean;
@@ -32,14 +32,17 @@ export function ExportTaskDialog({ isOpen, onClose, taskId, taskName }: ExportTa
       setIsExporting(true);
       setError(null);
 
-      const response = await fetch(`http://localhost:8000/api/routes/api/tasks/${taskId}/export/${format}`);
+      const response = await apiClient.get(
+        `/api/routes/api/tasks/${taskId}/export/${format}`,
+        { responseType: 'blob' }
+      );
 
-      if (!response.ok) {
-        const errData = await response.json();
+      if (!response.data) {
+        const errData = await response.data;
         throw new Error(errData.detail || 'Ошибка экспорта');
       }
 
-      const blob = await response.blob();
+      const blob = response.data;
       
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');

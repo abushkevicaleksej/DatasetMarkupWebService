@@ -50,9 +50,9 @@ class FileProcessingService:
             task = self.task_repository.get_by_id(task_id) if self.task_repository else None
             if not task:
                 raise ValueError("Task not found")
-        
         result = await self.process_file(file_content, original_filename)
         if not result.success:
+            print(result.success)
             raise ValueError(result.error_message)
         
         if task_id and result.extracted_files:
@@ -69,8 +69,7 @@ class FileProcessingService:
                     "media_type": f.media_type.value,
                     "file_size": f.file_size,
                     "width": f.width,
-                    "height": f.height,
-                    "user id": self.current_user.id
+                    "height": f.height
                 }
                 for f in result.extracted_files
             ]
@@ -81,10 +80,10 @@ class FileProcessingService:
     async def process_file(self, file_content: bytes, original_filename: str) -> ProcessingResult:
         import time
         start_time = time.time()
-        
         file_id = uuid4()
         file_extension = Path(original_filename).suffix
         saved_file_path = self.upload_dir / f"{file_id}{file_extension}"
+        
         with open(saved_file_path, "wb") as f:
             f.write(file_content)
         
@@ -158,7 +157,6 @@ class FileProcessingService:
         )
     
     async def _process_direct(self, file_path: Path, original_filename: str, start_time: float) -> ProcessingResult:
-        
         if not self.image_processor.can_process(original_filename):
             processing_time = time.time() - start_time
             return ProcessingResult(
@@ -178,7 +176,6 @@ class FileProcessingService:
                 error_message=result.error_message,
                 processing_time=processing_time
             )
-        
         processed_files = await self._save_files_to_db_and_storage(
             result.extracted_files
         )
@@ -190,31 +187,38 @@ class FileProcessingService:
             processing_time=processing_time
         )
 
-    async def _save_files_to_db_and_storage(
-            self, 
-            file_infos: List[FileInfo],
-    ) -> List[FileInfo]:
-        
+    async def _save_files_to_db_and_storage(self, file_infos: List[FileInfo]) -> List[FileInfo]:
         processed_files = []
         source_file_id = uuid4()
-        
+
         for file_info in file_infos:
             if file_info.file_path.exists():
                 new_file_id = file_info.id
                 new_extension = Path(file_info.file_path).suffix
                 new_file_path = self.upload_dir / f"{new_file_id}{new_extension}"
-                
+
                 shutil.copy2(file_info.file_path, new_file_path)
-                
+
+                data = {
+                    "id": str(new_file_id),
+                    "original_filename": file_info.original_filename,
+                    "file_path": str(new_file_path),
+                    "media_type": file_info.media_type.value,
+                    "mime_type": file_info.mime_type,
+                    "file_size": new_file_path.stat().st_size,
+                    "width": file_info.width,
+                    "height": file_info.height,
+                    "duration": file_info.duration,
+                    "extracted_from": str(source_file_id),
+                    "user_id": self.current_user.id,
+                }
+                self.file_repository.create(data)
+
                 file_info.file_path = new_file_path
-                file_info.file_size = new_file_path.stat().st_size
-                file_info.extracted_from = source_file_id
-                
-                self.file_repository.create(file_info)
+                file_info.file_size = data["file_size"]
                 processed_files.append(file_info)
             else:
                 print(f"Warning: File {file_info.file_path} does not exist, skipping")
-        
         return processed_files
 
     async def _cleanup_temp_dirs(self, temp_dirs: List[Path]):

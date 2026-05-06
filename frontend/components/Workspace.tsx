@@ -55,7 +55,7 @@ export function Workspace() {
   const fetchTaskFiles = async (taskId: string) => {
     try {
       setLoading(true);
-      const response = await apiClient.get(`/api/tasks/${taskId}/files`);
+      const response = await apiClient.get(`/api/routes/api/tasks/${taskId}/files`);
       
       if (!response.status) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -86,7 +86,7 @@ export function Workspace() {
   const fetchAllFiles = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/api/routes/files');
+      const response = await apiClient.get('/api/routes/api/routes/files');
       
       if (!response.status) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -118,7 +118,7 @@ export function Workspace() {
     try {
       setSavingTask(true);
       
-      const response = await apiClient.post('/api/routes/api/tasks');
+      const response = await apiClient.post('/api/routes/api/tasks', taskData);
 
       if (!response.status) {
         const errorData = await response.data;
