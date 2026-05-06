@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
-import { FileText, Image, Loader2, RefreshCw, Eye, Trash2, AlertCircle } from 'lucide-react';
+import { FileText, Image, Loader2, RefreshCw, Eye, Trash2, AlertCircle, Circle, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
 import {
   AlertDialog,
@@ -24,8 +24,9 @@ interface WorkspaceFile {
   type: 'image';
   size: string;
   active: boolean;
-  original_filename?: string;
-  mime_type?: string;
+  file_path?: string;
+  annotation_status?: string;
+  uncertainty_score?: number;
 }
 
 interface FileListProps {
@@ -55,7 +56,6 @@ export function FileList({
 }: FileListProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [deletingFiles, setDeletingFiles] = useState<Set<string>>(new Set());
-  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -113,7 +113,7 @@ const handleDeleteFile = async (fileId: string, fileName: string) => {
     );
   }
 
-  return (
+    return (
     <Card className="flex-1 flex flex-col min-h-0">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
@@ -159,6 +159,7 @@ const handleDeleteFile = async (fileId: string, fileName: string) => {
                 const Icon = fileIcons[file.type];
                 const isActive = file.id === currentFileId;
                 const isDeleting = deletingFiles.has(file.id);
+                const isAnnotated = file.annotation_status === 'annotated';
                 
                 return (
                   <div
@@ -171,19 +172,30 @@ const handleDeleteFile = async (fileId: string, fileName: string) => {
                     onClick={() => !isDeleting && handleFileClick(file.id)}
                   >
                     <div className="flex items-start gap-2">
-                      <Icon className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                      <div className="relative flex-shrink-0">
+                        <Icon className="w-5 h-5 text-muted-foreground" />
+                        <span className="absolute -bottom-0.5 -right-0.5">
+                          {isAnnotated ? (
+                            <CheckCircle className="w-3.5 h-3.5 text-green-500 bg-white rounded-full" />
+                          ) : (
+                            <Circle className="w-3.5 h-3.5 text-gray-400 bg-white rounded-full" />
+                          )}
+                        </span>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col">
                           <p className="truncate text-sm font-medium">{file.name}</p>
                           <p className="text-muted-foreground text-xs">{file.size}</p>
+                          {file.uncertainty_score !== undefined && (
+                            <p className="text-blue-600 text-xs font-mono">
+                              unc: {file.uncertainty_score.toFixed(3)}
+                            </p>
+                          )}
                         </div>
                         
                         <div className="flex items-center gap-1 mt-2">
                           {isTaskView && isActive && (
-                            <div 
-                              className="flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-1 rounded"
-                              title="Активный файл в режиме задачи"
-                            >
+                            <div className="flex items-center gap-1 text-xs text-primary bg-primary/10 px-2 py-1 rounded">
                               <Eye className="w-3 h-3" />
                               <span>Активен</span>
                             </div>
@@ -196,10 +208,7 @@ const handleDeleteFile = async (fileId: string, fileName: string) => {
                                   variant="ghost"
                                   size="sm"
                                   className="h-7 px-2 text-xs gap-1"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                  }}
-                                  title="Удалить файл"
+                                  onClick={(e) => e.stopPropagation()}
                                 >
                                   <Trash2 className="w-3 h-3" />
                                   Удалить

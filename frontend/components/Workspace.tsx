@@ -8,6 +8,7 @@ import { WorkspaceNavigation } from './workspace/WorkspaceNavigation';
 import { ExportTaskDialog } from './workspace/ExportDialogTask';
 import { SaveTaskForm } from './workspace/SaveTaskForm';
 import { AnnotationsProvider } from './workspace/AnnotationsContext';
+import { ActiveLearningDialog } from './workspace/ActiveLearningDialog';
 import { ModelInferenceDialog } from '../components/ModelInferenceDialog';
 import apiClient from '../src/client';
 
@@ -183,6 +184,49 @@ export function Workspace() {
   const currentFile = files.find(file => file.id === currentFileId) || null;
   const fileIds = files.map(file => file.id);
 
+  const [isActiveLearningDialogOpen, setIsActiveLearningDialogOpen] = useState(false);
+  const [activeLearningBatch, setActiveLearningBatch] = useState(false);
+
+  const handleActiveLearningBatch = (filesFromModel: any[]) => {
+    const workspaceFiles: WorkspaceFile[] = filesFromModel.map((f: any) => ({
+      id: f.id,
+      name: f.original_filename,
+      type: 'image' as const,
+      size: formatFileSize(f.file_size || 0),
+      active: false,
+      file_path: f.file_path,
+      annotation_status: f.annotation_status,
+      uncertainty_score: f.uncertainty_score,
+    }));
+
+    setFiles(workspaceFiles);
+    if (workspaceFiles.length > 0) {
+      setCurrentFileId(workspaceFiles[0].id);
+      setFiles(prev => prev.map((file, idx) => ({ ...file, active: idx === 0 })));
+    }
+    setActiveLearningBatch(true);
+  };
+
+  const handleStartOnlineLearning = async () => {
+    const modelId = window.prompt('Введите ID модели для дообучения:');
+    if (!modelId) return;
+
+    try {
+      const response = await apiClient.post('/api/online-learning', {
+        task_id: taskId,
+        model_id: modelId,
+      });
+      if (response.status === 200) {
+        alert('Дообучение запущено');
+        setActiveLearningBatch(false);
+        if (taskId) fetchTaskFiles(taskId);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Ошибка запуска дообучения');
+    }
+  };
+
   return (
     <AnnotationsProvider>
       <div className="h-[calc(100vh-8rem)] flex flex-col">
@@ -195,6 +239,9 @@ export function Workspace() {
             isTaskView={!!taskId}
             onOpenModelDialog={() => setIsModelDialogOpen(true)}
             onOpenExportDialog={() => setIsExportDialogOpen(true)}
+            onOpenActiveLearningDialog={() => setIsActiveLearningDialogOpen(true)}
+            onStartOnlineLearning={handleStartOnlineLearning}
+            isActiveLearningBatch={activeLearningBatch}
           />
           
           <WorkspaceCanvas 
@@ -243,6 +290,12 @@ export function Workspace() {
           currentFileId={currentFileId}
           allFileIds={fileIds}
           taskId={taskId}
+        />
+        <ActiveLearningDialog
+          isOpen={isActiveLearningDialogOpen}
+          onClose={() => setIsActiveLearningDialogOpen(false)}
+          taskId={taskId!}
+          onBatchReceived={handleActiveLearningBatch}
         />
       </div>
     </AnnotationsProvider>

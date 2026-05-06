@@ -9,7 +9,9 @@ import {
   Eye,
   BrainIcon,
   DownloadIcon,
-  Pointer
+  Pointer,
+  FlaskConical,
+  Zap
 } from 'lucide-react';
 
 type Tool = 'select' | 'rectangle' | 'erase' | 'move' | 'auto';
@@ -22,16 +24,15 @@ interface WorkspaceToolbarProps {
   isTaskView?: boolean;
   onOpenModelDialog?: () => void;
   onOpenExportDialog?: () => void;
+  onOpenActiveLearningDialog?: () => void;
+  onStartOnlineLearning?: () => void;
+  isActiveLearningBatch?: boolean;
 }
 
 export function WorkspaceToolbar({ 
-  activeTool, 
-  setActiveTool, 
-  onSaveClick, 
-  hasFiles, 
-  isTaskView = false,
-  onOpenModelDialog,
-  onOpenExportDialog
+  activeTool, setActiveTool, onSaveClick, hasFiles, isTaskView,
+  onOpenModelDialog, onOpenExportDialog,
+  onOpenActiveLearningDialog, onStartOnlineLearning, isActiveLearningBatch
 }: WorkspaceToolbarProps) {
   const tools = [
     { id: 'select' as Tool, icon: MousePointer2, label: 'Выделение' },
@@ -56,46 +57,58 @@ export function WorkspaceToolbar({
       ))}
 
       <Separator className="my-2" />
-      
-      <Button 
-          variant="ghost" 
-          size="icon" 
-          title="Использовать AI модель"
-          onClick={onOpenModelDialog}
+
+      {isTaskView && onOpenActiveLearningDialog && (
+        <Button
+          variant="ghost"
+          size="icon"
+          title="Active Learning – получить неуверенные файлы"
+          onClick={onOpenActiveLearningDialog}
           disabled={!hasFiles}
         >
-          <BrainIcon className="w-5 h-5" />
+          <FlaskConical className="w-5 h-5" />
+        </Button>
+      )}
+
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        title="Использовать AI модель"
+        onClick={onOpenModelDialog}
+        disabled={!hasFiles}
+      >
+        <BrainIcon className="w-5 h-5" />
       </Button>
 
       <Button 
-          variant="ghost" 
-          size="icon" 
-          title="Экспорт разметки"
-          onClick={onOpenExportDialog}
-          disabled={!isTaskView || !hasFiles}
-        >
-          <DownloadIcon className="w-5 h-5" />
+        variant="ghost" 
+        size="icon" 
+        title="Экспорт разметки"
+        onClick={onOpenExportDialog}
+        disabled={!isTaskView || !hasFiles}
+      >
+        <DownloadIcon className="w-5 h-5" />
       </Button>
 
       <Separator className="my-2" />
 
-      {isTaskView ? (
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          title="Режим просмотра задачи"
-          disabled
+      {isActiveLearningBatch && onStartOnlineLearning && (
+        <Button
+          variant="default"
+          size="icon"
+          title="Запустить дообучение модели"
+          onClick={onStartOnlineLearning}
         >
+          <Zap className="w-5 h-5" />
+        </Button>
+      )}
+
+      {isTaskView ? (
+        <Button variant="ghost" size="icon" disabled>
           <Eye className="w-5 h-5" />
         </Button>
       ) : (
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          title="Сохранить задачу"
-          onClick={onSaveClick}
-          disabled={!hasFiles}
-        >
+        <Button variant="ghost" size="icon" onClick={onSaveClick} disabled={!hasFiles}>
           <Save className="w-5 h-5" />
         </Button>
       )}
