@@ -12,7 +12,6 @@ class TaskService:
         return None if str(self.current_user.role) == "admin" else self.current_user.id
 
     def create_task(self, name: str, description: str, file_ids: List[str] = None):
-        print("here we go")
         return self.task_repository.create(name, description, str(self.current_user.id), file_ids)
     
     def get_task(self, task_id: str):

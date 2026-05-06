@@ -125,3 +125,12 @@ class User(Base):
 
     def __str__(self):
         return self.username
+    
+class TokenBlacklist(Base):
+    __tablename__ = 'token_blacklist'
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    token_jti = Column(String(255), unique=True, nullable=False, index=True)
+    token_type = Column(String(20), nullable=False)
+    expired_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)

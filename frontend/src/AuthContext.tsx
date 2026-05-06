@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import apiClient, { loginRequest } from './client';
+import axios from 'axios'
 import { useNavigate } from 'react-router-dom';
 
 interface User {
@@ -52,12 +53,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await fetchCurrentUser();
   };
 
-  const register = async (username: string, email: string, password: string) => {
-    await apiClient.post('/api/routes/register', { username, email, password });
+  const register = async (username: string, email: string, password: string, role: string = "user") => {
+    await apiClient.post('/api/routes/register', { username, email, password, role });
     await login(username, password);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    const refresh = localStorage.getItem('refresh_token');
+    if (refresh) {
+      try {
+        await axios.post('/api/routes/logout',
+          new URLSearchParams({ refresh_token: refresh }),
+          { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+        );
+      } catch {}
+    }
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     setUser(null);

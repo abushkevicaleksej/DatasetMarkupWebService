@@ -16,6 +16,7 @@ from app.infrastructure.repositories.file_repository import FileRepository
 from app.infrastructure.repositories.task_repository import TaskRepository
 from app.infrastructure.repositories.ml_model_repository import MLModelRepository, TrainingSessionRepository, PredictionRepository
 from app.infrastructure.repositories.user_repository import UserRepository
+from app.infrastructure.repositories.token_repository import TokenBlacklistRepository
 
 from app.application.services.file_processing_service import FileProcessingService
 from app.application.services.annotation_service import AnnotationService
@@ -28,8 +29,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/routes/login")
 
 def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
     user_repo = UserRepository(db)
+    token_repo = TokenBlacklistRepository(db)
 
-    return AuthService(user_repo)
+    return AuthService(user_repo, token_repo)
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
