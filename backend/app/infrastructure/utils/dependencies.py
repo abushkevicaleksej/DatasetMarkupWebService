@@ -19,6 +19,7 @@ from app.infrastructure.repositories.user_repository import UserRepository
 from app.infrastructure.repositories.token_repository import TokenBlacklistRepository
 
 from app.application.services.file_processing_service import FileProcessingService
+from app.application.services.active_learning_service import ActiveLearningService
 from app.application.services.annotation_service import AnnotationService
 from app.application.services.export_service import ExportService
 from app.application.services.model_service import ModelService
@@ -109,3 +110,11 @@ def get_file_processing_service(db: Session = Depends(get_db), current_user: Use
     task_repo = TaskRepository(db)
 
     return FileProcessingService(file_repo, task_repo, current_user)
+
+def get_active_learning_service(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    model_service = get_model_service(db)
+    
+    return ActiveLearningService(FileRepository(db), model_service, current_user)

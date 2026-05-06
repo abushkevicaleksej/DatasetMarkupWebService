@@ -33,3 +33,7 @@ class BaseDetectionModel(ABC):
 
     def freeze_backbone(self, frozen: bool = True) -> None:
         pass
+
+    @abstractmethod
+    def predict_with_uncertainty(self, image: np.ndarray, confidence_threshold: float = 0.5) -> tuple[list, float]:
+        pass

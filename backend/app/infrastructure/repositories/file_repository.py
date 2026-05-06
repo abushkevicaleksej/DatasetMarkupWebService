@@ -1,7 +1,7 @@
 from uuid import UUID
 from typing import List, Optional
 
-from sqlalchemy import update
+from sqlalchemy import update, func
 from sqlalchemy.orm import Session
 
 from app.domain.models import File
@@ -85,3 +85,23 @@ class FileRepository:
             duration=db_file.duration,
             extracted_from=UUID(db_file.extracted_from) if db_file.extracted_from else None
         )
+
+    def get_random_unannotated_files(self, task_id: str, limit: int = 100) -> List[File]:
+        return self.db.query(File)\
+            .filter(File.task_id == task_id, File.annotation_status == 'unannotated')\
+            .order_by(func.random())\
+            .limit(limit)\
+            .all()
+
+    def get_top_uncertain_files(self, task_id: str, limit: int = 10) -> List[File]:
+        return self.db.query(File)\
+            .filter(File.task_id == task_id, File.annotation_status == 'unannotated')\
+            .order_by(File.uncertainty_score.desc())\
+            .limit(limit)\
+            .all()
+
+    def update_annotation_status(self, file_id: str, status: str):
+        file = self.get_by_id(file_id)
+        if file:
+            file.annotation_status = status
+            self.db.commit()

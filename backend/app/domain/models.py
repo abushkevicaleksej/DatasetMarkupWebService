@@ -52,6 +52,9 @@ class File(Base):
     user_id = Column(String(36), ForeignKey('users.id'), nullable=False, index=True)
     owner = relationship("User", back_populates="files")
 
+    annotation_status = Column(String(50), default='unannotated')
+    uncertainty_score = Column(Float, default=0.0)
+
     def __str__(self):
         return self.original_filename
 

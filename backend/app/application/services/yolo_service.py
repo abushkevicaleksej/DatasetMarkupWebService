@@ -4,6 +4,7 @@ from datetime import datetime
 
 import cv2
 from ultralytics import YOLO
+import numpy as np
 
 from app.domain.ml_schemas import BoundingBoxPrediction, PredictionResponse
 
@@ -98,6 +99,51 @@ class YOLOService:
                     predictions.append(prediction)
 
         return predictions, processing_time
+
+    async def predict_with_uncertainty(
+        self, 
+        image: np.ndarray, 
+        confidence_threshold: float = 0.5
+    ) -> List[BoundingBoxPrediction]:
+
+        results = self.model(image, conf=confidence_threshold)
+    
+        predictions = []
+        confidences = []
+
+        for result in results:
+            if result.boxes is not None:
+                for box in result.boxes:
+                    x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                    conf = float(box.conf[0].cpu().numpy())
+                    confidences.append(conf)
+                    cls = int(box.cls[0].cpu().numpy())
+
+                    class_name = self.model.names[cls]
+
+                    height, width = image.shape[:2]
+                    x_top_left = x1 / width
+                    y_top_left = y1 / height
+                    bbox_width = (x2 - x1) / width
+                    bbox_height = (y2 - y1) / height
+
+                    prediction = BoundingBoxPrediction(
+                        x=float(x_top_left),
+                        y=float(y_top_left),
+                        width=float(bbox_width),
+                        height=float(bbox_height),
+                        label=class_name,
+                        confidence=float(conf)
+                    )
+                    predictions.append(prediction)
+
+        if not confidences:
+            uncertainty = 0.5 
+        else:
+            mean_conf = sum(confidences) / len(confidences)
+            uncertainty = 1.0 - mean_conf
+
+        return predictions, uncertainty
 
     async def batch_predict(self, model_id: str, file_paths: List[Path],
                             confidence_threshold: float = 0.5) -> Dict[Path, PredictionResponse]:

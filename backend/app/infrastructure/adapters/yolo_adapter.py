@@ -36,6 +36,40 @@ class YOLOAdapter(BaseDetectionModel):
                     ))
         return predictions
 
+    def predict_with_uncertainty(self, image: np.ndarray, confidence_threshold: float = 0.5) -> Tuple[List[BoundingBoxPrediction], float]:
+        results = self.model(image, conf=confidence_threshold, verbose=False)
+        
+        predictions = []
+        confidences = []
+
+        for result in results:
+            if result.boxes is not None:
+                for box in result.boxes:
+                    x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                    conf = float(box.conf[0].cpu().numpy())
+                    cls = int(box.cls[0].cpu().numpy())
+                    
+                    class_name = self.model.names[cls]
+                    height, width = image.shape[:2]
+                    
+                    predictions.append(BoundingBoxPrediction(
+                        x=float(x1 / width),
+                        y=float(y1 / height),
+                        width=float((x2 - x1) / width),
+                        height=float((y2 - y1) / height),
+                        label=class_name,
+                        confidence=conf
+                    ))
+                    confidences.append(conf)
+
+        if not confidences:
+            uncertainty = 1.0 
+        else:
+            mean_conf = sum(confidences) / len(confidences)
+            uncertainty = 1.0 - mean_conf
+
+        return predictions, uncertainty
+
     def train(self, train_data: List[Dict[str, Any]], epochs: int, batch_size: int, learning_rate: float, **kwargs) -> Dict[str, Any]:
         data_yaml = kwargs.get('data_yaml')
         if not data_yaml:

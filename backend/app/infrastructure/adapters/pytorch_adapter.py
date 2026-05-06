@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import random
 import logging
 
@@ -128,6 +128,10 @@ class PyTorchAdapter(BaseDetectionModel):
                 confidence=float(score)
             ))
         return result
+
+    def predict_with_uncertainty(self, image: np.ndarray, confidence_threshold: float = 0.5) -> Tuple[List[BoundingBoxPrediction], float]:
+        predictions = self.predict(image, confidence_threshold)
+        return predictions, 0.0
 
     def train(self, 
               train_data: List[Dict[str, Any]], 

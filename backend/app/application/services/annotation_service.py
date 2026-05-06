@@ -51,6 +51,8 @@ class AnnotationService:
         if not annotation.bounding_boxes:
             raise ValueError("Annotation must contain at least one bounding box")
 
+        self.file_repository.update_annotation_status(request.file_id, 'annotated')
+
         return annotation
 
     async def create_smart_annotation(self, file_id: str, task_id: str, x: float, y: float) -> dict:

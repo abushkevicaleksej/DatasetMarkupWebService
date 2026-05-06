@@ -7,7 +7,8 @@ from .routes import (
     annotations,
     ml_routes,
     export_routes,
-    auth_routes
+    auth_routes,
+    active_learning_routes
 )
 
 def create_api_router() -> APIRouter:
@@ -19,4 +20,5 @@ def create_api_router() -> APIRouter:
     api_router.include_router(ml_routes.router, prefix="/api/routes", tags=["ml-models"])
     api_router.include_router(export_routes.router, prefix="/api/routes", tags=["export-routes"])
     api_router.include_router(auth_routes.router, prefix="/api/routes", tags=["auth-routes"])
+    api_router.include_router(active_learning_routes.router, prefix="/api/routes", tags=["active-learning-routes"])
     return api_router
