@@ -46,8 +46,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchCurrentUser();
   }, [fetchCurrentUser]);
 
-  const login = async (username: string, password: string) => {
-    const tokens = await loginRequest(username, password);
+  const login = async (username: string, password: string, role: string) => {
+    const tokens = await loginRequest(username, password, role);
     localStorage.setItem('access_token', tokens.access_token);
     localStorage.setItem('refresh_token', tokens.refresh_token);
     await fetchCurrentUser();
@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (username: string, email: string, password: string, role: string = "user") => {
     await apiClient.post('/api/routes/register', { username, email, password, role });
-    await login(username, password);
+    await login(username, password, role);
   };
 
   const logout = async () => {

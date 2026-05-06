@@ -45,7 +45,7 @@ export function Auth() {
 
     try {
       if (isLogin) {
-        await login(formData.username, formData.password);
+        await login(formData.username, formData.password, formData.role);
       } else {
         await register(formData.username, formData.email, formData.password);
       }

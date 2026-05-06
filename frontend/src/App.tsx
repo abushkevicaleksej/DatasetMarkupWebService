@@ -7,7 +7,8 @@ import { TaskList } from '../components/TaskList';
 import { Header } from '../components/Header';
 import { HelpPage } from '../components/HelpPage';
 import { AuthProvider } from './AuthContext';
-import { RequireAuth } from '../components/checkAuth'
+import { RequireAuth } from '../components/checkAuth';
+import { AdminRedirect } from '../components/AdminRedirect'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
               <Route path="/models" element={<RequireAuth><ModelList /></RequireAuth>} />
               <Route path="/tasks" element={<RequireAuth><TaskList /></RequireAuth>} />
               <Route path="/help" element={<HelpPage />} />
+              <Route path="/admin" element={<AdminRedirect />} />
             </Routes>
           </main>
         </div>

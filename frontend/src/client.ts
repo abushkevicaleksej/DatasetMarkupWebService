@@ -45,10 +45,11 @@ apiClient.interceptors.response.use(
 
 export default apiClient;
 
-export async function loginRequest(username: string, password: string) {
+export async function loginRequest(username: string, password: string, role: string) {
   const params = new URLSearchParams();
   params.append('username', username);
   params.append('password', password);
+  params.append('role', role);
   
   const { data } = await axios.post(`${API_BASE_URL}/api/routes/login`, params, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

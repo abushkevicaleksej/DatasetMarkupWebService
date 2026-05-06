@@ -16,10 +16,11 @@ async def register(user_data: UserCreate, service: Annotated[AuthService, Depend
     try:
         user = await service.register(user_data)
         return UserResponse(
-            id=user.id,
-            username=user.username,
-            email=user.email,
-            is_active=user.is_active
+            id=str(user.id),
+            username=str(user.username),
+            email=str(user.email),
+            is_active=bool(user.is_active),
+            role=str(user.role)
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -63,7 +64,8 @@ async def get_me(current_user: User = Depends(get_current_user)):
         id=str(current_user.id),
         username=str(current_user.username),
         email=str(current_user.email),
-        is_active=bool(current_user.is_active)
+        is_active=bool(current_user.is_active),
+        role=str(current_user.role)
     )
 
 # @router.post("/request-password-reset")
