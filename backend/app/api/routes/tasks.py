@@ -20,7 +20,6 @@ async def get_tasks(
     current_user: User = Depends(get_current_user)
 ):
     tasks = service.get_all_tasks()
-
     response = []
     for task in tasks:
         response.append(
@@ -44,7 +43,6 @@ async def create_task(
     service: Annotated[TaskService, Depends(get_task_service)],
 ):
     try:
-        print("here we go")
         task = service.create_task(
             name=task_data.name,
             description=str(task_data.description),

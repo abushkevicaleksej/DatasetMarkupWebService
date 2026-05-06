@@ -1,3 +1,5 @@
+import apiClient from '../../src/client';
+
 export interface MLModel {
   id: string;
   name: string;
@@ -43,38 +45,28 @@ const API_BASE_URL = 'http://localhost:8000/api/routes';
 
 export const mlApi = {
   async getModels(): Promise<MLModel[]> {
-    const response = await fetch(`${API_BASE_URL}/models`);
-    if (!response.ok) throw new Error('Failed to fetch models');
-    return response.json();
+    const response = await apiClient.get(`${API_BASE_URL}/models`);
+    if (!response.status) throw new Error('Failed to fetch models');
+    return response.data;
   },
 
   async predict(data: PredictionRequest): Promise<PredictionResponse[]> {
-    const response = await fetch(`${API_BASE_URL}/predict`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
+    const response = await apiClient.post(`${API_BASE_URL}/predict`, data);
 
-    if (!response.ok) {
-      const error = await response.json();
+    if (!response.status) {
+      const error = await response.data;
       throw new Error(error.detail || 'Prediction failed');
     }
 
-    return response.json();
+    return response.data;
   },
    async train (data: OnlineLearningRequest): Promise<OnlineLearningResponse> {
-    const response = await fetch('http://localhost:8000/api/routes/online-learning', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
+    const response = await apiClient.post('/api/routes/online-learning', data);
 
-    if (!response.ok) {
-      const error = await response.json();
+    if (!response.status) {
+      const error = await response.data;
       throw new Error(error.detail || 'Training request failed');
     }
-    return response.json();
+    return response.data;
   }
 };

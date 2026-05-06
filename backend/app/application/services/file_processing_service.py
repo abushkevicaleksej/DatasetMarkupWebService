@@ -54,7 +54,6 @@ class FileProcessingService:
                 raise ValueError("Task not found")
         result = await self.process_file(file_content, original_filename, task_id)
         if not result.success:
-            print(result.success)
             raise ValueError(result.error_message)
         
         response = {

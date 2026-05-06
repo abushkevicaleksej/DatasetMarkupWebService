@@ -42,7 +42,7 @@ class AuthService:
             username=user_data.username,
             email=user_data.email,
             hashed_password=hashed,
-            role=user_data.role
+            role="user"
         )
         return user
 

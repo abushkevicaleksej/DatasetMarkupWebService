@@ -45,16 +45,13 @@ export function ModelInferenceDialog({
   const [models, setModels] = useState<MLModel[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
   
-  // Состояния
   const [processing, setProcessing] = useState(false);
   const [activeTab, setActiveTab] = useState<'predict' | 'train'>('predict');
 
-  // Состояние Predict
   const [selectedModelId, setSelectedModelId] = useState<string>('');
   const [confidence, setConfidence] = useState<number>(50);
   const [scope, setScope] = useState<'current' | 'all'>('current');
 
-  // Состояние Train
   const [epochs, setEpochs] = useState<number>(10);
   const [learningRate, setLearningRate] = useState<string>('0.001');
 

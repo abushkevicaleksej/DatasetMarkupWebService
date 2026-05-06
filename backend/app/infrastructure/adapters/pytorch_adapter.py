@@ -140,7 +140,6 @@ class PyTorchAdapter(BaseDetectionModel):
               ) -> Dict[str, Any]:
 
         if kwargs.get('data_yaml'):
-            print("go")
             train_data = load_yolo_dataset(kwargs['data_yaml'])
         
         random.shuffle(train_data)
@@ -227,7 +226,6 @@ class PyTorchAdapter(BaseDetectionModel):
         }
 
     def save(self, path: str) -> None:
-        print(path)
         torch.save(self.model, path)
 
     def supports_incremental_learning(self) -> bool:
