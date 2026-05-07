@@ -11,6 +11,7 @@ export enum ModelFramework {
   TORCHVISION = 'torchvision',
   TENSORFLOW = 'tensorflow',
   PYTORCH = 'pytorch',
+  CUSTOM = 'custom',
   ONNX = 'onnx',
   OTHER = 'other'
 }

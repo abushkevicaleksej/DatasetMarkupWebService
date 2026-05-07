@@ -1,3 +1,4 @@
+import { useCallback, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -20,27 +21,48 @@ export function WorkspaceNavigation({ files, currentFileId, onFileChange }: Work
   const totalFiles = files.length;
   const hasValidFile = currentIndex !== -1;
 
-  const goToPrevious = () => {
+  const goToPrevious = useCallback(() => {
     if (files.length === 0) return;
-    let newIndex: number;
-    if (!hasValidFile) {
-      newIndex = files.length - 1;
-    } else {
-      newIndex = currentIndex > 0 ? currentIndex - 1 : files.length - 1;
-    }
+    const newIndex = hasValidFile
+      ? (currentIndex > 0 ? currentIndex - 1 : files.length - 1)
+      : files.length - 1;
     onFileChange(files[newIndex].id);
-  };
+  }, [files, currentIndex, hasValidFile, onFileChange]);
 
-  const goToNext = () => {
+  const goToNext = useCallback(() => {
     if (files.length === 0) return;
-    let newIndex: number;
-    if (!hasValidFile) {
-      newIndex = 0;
-    } else {
-      newIndex = currentIndex < files.length - 1 ? currentIndex + 1 : 0;
-    }
+    const newIndex = hasValidFile
+      ? (currentIndex < files.length - 1 ? currentIndex + 1 : 0)
+      : 0;
     onFileChange(files[newIndex].id);
-  };
+  }, [files, currentIndex, hasValidFile, onFileChange]);
+
+  // Обработчик клавиш-стрелок
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Игнорируем, если фокус в поле ввода
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goToPrevious();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        goToNext();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [goToPrevious, goToNext]);
 
   if (files.length === 0) {
     return (

@@ -70,14 +70,17 @@ class ExportService:
 
                     is_normalized = bbox.x <= 1.0 and bbox.width <= 1.0
                     if is_normalized:
-                        cx, cy, w, h = bbox.x, bbox.y, bbox.width, bbox.height
+                        w = bbox.width
+                        h = bbox.height
+                        cx = bbox.x + w / 2.0
+                        cy = bbox.y + h / 2.0
                     else:
                         if not file.width or not file.height:
                             continue
                         w = bbox.width / file.width
                         h = bbox.height / file.height
-                        cx = (bbox.x + (bbox.width / 2)) / file.width
-                        cy = (bbox.y + (bbox.height / 2)) / file.height
+                        cx = (bbox.x + bbox.width / 2) / file.width
+                        cy = (bbox.y + bbox.height / 2) / file.height
 
                     lf.write(f"{class_id} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}\n")
 

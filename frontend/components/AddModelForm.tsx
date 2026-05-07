@@ -212,6 +212,7 @@ export function AddModelForm({ onModelAdded }: AddModelFormProps) {
     { value: ModelFramework.TORCHVISION, label: 'TorchVision' },
     { value: ModelFramework.TENSORFLOW, label: 'TensorFlow' },
     { value: ModelFramework.PYTORCH, label: 'PyTorch' },
+    { value: ModelFramework.CUSTOM, label: 'Самодельная' },
     { value: ModelFramework.ONNX, label: 'ONNX' },
     { value: ModelFramework.OTHER, label: 'Другое' },
   ];
