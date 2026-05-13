@@ -1,12 +1,19 @@
 # Dataset Markup Web Service
 This repository contains the implementation of a web service designed for semi-automatic annotation of visual data. It provides tools to streamline and accelerate the labeling process for images and videos by combining automated methods with user input.
-<img width="1912" height="1001" alt="image" src="https://github.com/user-attachments/assets/a81c26ca-65e0-443b-a422-6187c589e878" />
+<img width="692" height="388" alt="2026-05-13 10-10-49 — копия" src="https://github.com/user-attachments/assets/8fcc4c31-6675-43d0-878b-f996d6435fe1" />
+
 
 # Notice
-App is currently in development mode, but you can try it now! See https://github.com/users/abushkevicaleksej/projects/1/views/1
+App is currently in development mode, but you can try it now!
 
 # Installation
-Firstly, you need to install Node.js for frontend performing. Go to https://nodejs.org/en/download
+First thing first, you need to clone the repository:
+```
+git clone https://github.com/abushkevicaleksej/DatasetMarkupWebService.git
+cd DatasetMarkupWebService
+```
+
+Then, you need to install Node.js for frontend performing. Go to https://nodejs.org/en/download
 
 Then, install uv with our standalone installers:
 
@@ -53,4 +60,4 @@ In the other terminal:
 cd ./backend/
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
-Then go to **localhost:5173**. Also see docs with FastAPI Swagger UI on **localhost:8000/docs**
+Then go to **localhost:5173**. Also see docs **[here](https://abushkevicaleksej.github.io/DatasetMarkupWebService/)**
