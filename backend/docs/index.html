@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Мой API - Документация</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style> body { margin: 0; padding: 0; } </style>
+  </head>
+  <body>
+    <div id="redoc-container"></div>
+    <script src="./assets/js/redoc.standalone.js"></script>
+    <script>
+      Redoc.init(
+        '../openapi.json',
+        {
+          scrollYOffset: 0,
+          hideDownloadButton: false,
+          expandResponses: "200,201",
+          nativeScrollbars: true,
+          pathInMiddlePanel: true,
+        },
+        document.getElementById('redoc-container')
+      );
+    </script>
+  </body>
+</html>
