@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
 import { ListTodo, Box, BookOpen, LogOut, LogIn, User, Shield } from 'lucide-react';
 import { useAuth } from '../src/AuthContext';
+import { ADMIN_URL } from '../src/config';
 
 export function Header() {
   const navigate = useNavigate();
@@ -48,7 +49,7 @@ export function Header() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.open('http://localhost:8000/admin', '_blank')}
+            onClick={() => window.open(ADMIN_URL, '_blank')}
             className="flex items-center gap-2"
           >
             <Shield className="w-4 h-4" />

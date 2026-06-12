@@ -1,4 +1,5 @@
 import apiClient from '../../src/client';
+import { API_ROUTES_URL } from '../../src/config';
 
 export interface MLModel {
   id: string;
@@ -40,18 +41,15 @@ export interface OnlineLearningResponse {
   status: string;
 }
 
-// Используем тот же базовый URL, что и в Workspace.tsx
-const API_BASE_URL = 'http://localhost:8000/api/routes'; 
-
 export const mlApi = {
   async getModels(): Promise<MLModel[]> {
-    const response = await apiClient.get(`${API_BASE_URL}/models`);
+    const response = await apiClient.get(`${API_ROUTES_URL}/models`);
     if (!response.status) throw new Error('Failed to fetch models');
     return response.data;
   },
 
   async predict(data: PredictionRequest): Promise<PredictionResponse[]> {
-    const response = await apiClient.post(`${API_BASE_URL}/predict`, data);
+    const response = await apiClient.post(`${API_ROUTES_URL}/predict`, data);
 
     if (!response.status) {
       const error = await response.data;

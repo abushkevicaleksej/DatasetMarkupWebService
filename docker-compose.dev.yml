@@ -1,0 +1,57 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: sqlite:////data/annotation_service.db
+      SAM2_URL: http://sam2-api:5000/annotate
+      VALIDATION_URL: ${VALIDATION_URL:-http://host.docker.internal:3033/validate}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+    volumes:
+      - backend_data:/data
+      - backend_uploads:/app/uploads
+      - backend_models:/app/models
+      - ./backend/app:/app/app
+    depends_on:
+      sam2-api:
+        condition: service_started
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  sam2-api:
+    build:
+      context: ./backend/model_service
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - sam_weights:/app/weights
+    restart: unless-stopped
+
+volumes:
+  backend_data:
+  backend_uploads:
+  backend_models:
+  sam_weights:
+  frontend_node_modules:

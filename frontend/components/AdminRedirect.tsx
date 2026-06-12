@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../src/AuthContext';
-
-const ADMIN_URL = 'http://localhost:8000/admin';
+import { ADMIN_URL } from '../src/config';
 
 export function AdminRedirect() {
   const { user } = useAuth();

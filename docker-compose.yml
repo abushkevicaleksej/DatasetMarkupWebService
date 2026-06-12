@@ -1,0 +1,51 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: sqlite:////data/annotation_service.db
+      SAM2_URL: http://sam2-api:5000/annotate
+      VALIDATION_URL: ${VALIDATION_URL:-http://host.docker.internal:3033/validate}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5173
+    volumes:
+      - backend_data:/data
+      - backend_uploads:/app/uploads
+      - backend_models:/app/models
+    depends_on:
+      sam2-api:
+        condition: service_started
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  sam2-api:
+    build:
+      context: ./backend/model_service
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - sam_weights:/app/weights
+    restart: unless-stopped
+
+volumes:
+  backend_data:
+  backend_uploads:
+  backend_models:
+  sam_weights:

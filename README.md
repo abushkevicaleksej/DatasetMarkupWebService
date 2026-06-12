@@ -61,3 +61,34 @@ cd ./backend/
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 Then go to **localhost:5173**. Also see docs **[here](https://abushkevicaleksej.github.io/DatasetMarkupWebService/)**
+
+## Docker (one-click launch)
+
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+
+### Production-like stack
+
+```bash
+docker compose up --build
+```
+
+| Service   | URL                      |
+|-----------|--------------------------|
+| Frontend  | http://localhost:3000    |
+| Backend   | http://localhost:8000    |
+| Admin     | http://localhost:8000/admin |
+| SAM2 API  | http://localhost:5000    |
+
+In Docker Desktop, open the compose stack and use **Start** / **Stop** for all services at once.
+
+The first build of `sam2-api` can take 15–30+ minutes (PyTorch + SAM2 weights).
+
+Optional: copy `.env.example` to `.env` and set `SECRET_KEY`.
+
+### Development stack (hot-reload)
+
+```bash
+docker compose -f docker-compose.dev.yml up --build
+```
+
+Frontend: **http://localhost:5173**, backend: **http://localhost:8000**.

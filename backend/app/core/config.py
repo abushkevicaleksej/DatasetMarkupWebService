@@ -6,7 +6,7 @@ class Settings:
         self.ALGORITHM = "HS256"
         self.ACCESS_TOKEN_EXPIRE_MINUTES = 30
         self.REFRESH_TOKEN_EXPIRE_DAYS = 7
-        self.SAM2_URL = "http://localhost:5000/annotate"
-        self.VALIDATION_URL = "http://localhost:3033/validate"
+        self.SAM2_URL = os.getenv("SAM2_URL", "http://localhost:5000/annotate")
+        self.VALIDATION_URL = os.getenv("VALIDATION_URL", "http://localhost:3033/validate")
 
 settings = Settings()

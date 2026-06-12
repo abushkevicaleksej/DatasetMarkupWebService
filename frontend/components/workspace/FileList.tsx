@@ -74,7 +74,7 @@ const handleDeleteFile = async (fileId: string, fileName: string) => {
     if (onFileDelete) {
       await onFileDelete(fileId);
     } else {
-      const response = await apiClient.delete(`http://localhost:8000/api/routes/files/${fileId}`);
+      const response = await apiClient.delete(`/api/routes/files/${fileId}`);
       if (!response.data) {
         const errorData = await response.data;
         throw new Error(errorData.detail || 'Ошибка при удалении файла');
